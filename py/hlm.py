@@ -24,6 +24,9 @@ def get_max_pixel(cnts):
 
     output:
     * `xc, yc` - integer max pixel location
+
+    comments:
+    * Asserts that the max pixel is not on an edge; might be dumb.
     """
     nt, ny, nx = cnts.shape
     max_indx = np.argmax(np.mean(cnts, axis=0))
@@ -57,14 +60,13 @@ def get_all_centroids(cnts):
     * `centroids` - some crazy object of centroids
 
     bugs:
-    * Needs numpification of output.
     * Is `map()` dumb?
     * Should I be using a lambda function or something smarter?
     """
     xc, yc = get_max_pixel(cnts)
     def goc(c):
         return get_one_centroid(c, xc, yc)
-    return map(goc, cnts)
+    return np.array(map(goc, cnts))
 
 if __name__ == "__main__":
     kicid = 3335426
@@ -80,4 +82,5 @@ if __name__ == "__main__":
     raw_cnts = table["RAW_CNTS"]
     bkg_sub_flux = table["FLUX"]
     xc, yc = get_max_pixel(raw_cnts)
-    xcs, ycs = get_all_centroids(raw_cnts)
+    centroids = get_all_centroids(raw_cnts)
+    print centroids.shape
