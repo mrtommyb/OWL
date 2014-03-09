@@ -17,6 +17,13 @@ import numpy as np
 import kplr
 client = kplr.API()
 
+if False:
+    from multiprocessing import Pool
+    p = Pool(16)
+    pmap = p.map
+else:
+    pmap = map
+
 # make shit for least squares
 # BUG: I am sure there is a one-liner for this
 XGRID, YGRID = np.meshgrid(np.arange(3) - 1, np.arange(3) - 1)
@@ -124,7 +131,7 @@ def get_one_robust_centroid(one_flux, invvar, xc, yc):
     loo_iv[range(9), yc + YGRID, xc + XGRID] = 0. # create leave-one-out invvars
     def goc(iv):
         return get_one_centroid(one_flux, iv, xc, yc)
-    centroids = np.array(map(goc, loo_iv))
+    centroids = np.array(pmap(goc, loo_iv))
     centroid = np.median(centroids, axis=0)
     centroid[2] = np.min(centroids[:, 2])
     return centroid
@@ -147,14 +154,25 @@ def get_all_centroids(flux, mask):
     iv[(mask > 0)] = 1.
     def gorc(c):
         return get_one_robust_centroid(c, iv, xc, yc)
-    return np.array(map(gorc, flux))
+    return np.array(pmap(gorc, flux))
 
 def get_centroid_derivatives(flux, mask):
+    """
+    input:
+    * `flux` - `np.array` shape `(nt, ny, nx)` of pixel intensities (not fluxes!).
+    * `mask` - Kepler-generated pixel mask.
+
+    output:
+    * `derivatives` - `np.array` shape `(ny, nx, 2)` of derivatives wrt centroid position.
+
+    bugs:
+    * Ought to be a map not a pair of nested for loops!
+    """
     nt, ny, nx = flux.shape
     centroids = get_all_centroids(flux, mask)
     iv = centroids[:, 2]
     centroids = centroids[:, :2]
-    centroids -= np.median(centroids, axis=1)
+    centroids -= np.median(centroids, axis=0)
     A = np.hstack((np.ones(nt)[:, None], centroids))
     bkg_sub_flux[iv <= 0., :, :] = 0.
     ATA = np.dot(np.transpose(A), iv[:, None] * A)
