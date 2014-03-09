@@ -62,36 +62,70 @@ def get_one_centroid(one_flux, invvar, xc, yc):
     input:
     * `one_flux` - `np.array` shape `(ny, nx)` pixel intensities (not fluxes!)
     * `invvar` - mask or weight image same shape as `one_flux`
-    * `xc, yc` - max or "central" pixel.
+    * `xc, yc` - max or "central" pixel; integer centroid
 
     output:
-    * `xc, yc` - floating-point centroid based on quadratic fit
+    * `[dxc, dyc, m]` - floating-point centroid offset and mask value based on quadratic fit
 
     comments:
-    * does (A.T C.inv A).inv A.T C.inv b
+    * does (A.T C.inv A).inv A.T C.inv b.
+    * then does `sdenominator` and `snumerator` magic.
 
     bugs:
-    * Currently does NOTHING.
-    * Ought to do 9-fold leave-one-out set of operations for robustness.
     * Ought to take in a prior / regularization that draws the answer towards a default (floating point) centroid.
+    * Magic algebra ought to be checked.
     """
     ninebyone = (one_flux[yc + YGRID, xc + XGRID]).flatten()
     iv = (invvar[yc + YGRID, xc + XGRID]).flatten()
+    intcentroid = np.array([0., 0., 0.])
     if np.sum(iv > 0.) < 7:
-        print "hlm.get_one_centroid(): WARNING: not enough data to support fit"
-        print "hlm.get_one_centroid():", iv
-        print "hlm.get_one_centroid(): returning integer centroid"
-        return xc, yc
+        # print "hlm.get_one_centroid(): WARNING: not enough data to support fit"
+        # print "hlm.get_one_centroid(): returning integer centroid"
+        return intcentroid
     numerator = np.dot(np.transpose(NINEBYSIX), iv * ninebyone)
     denominator = np.dot(np.transpose(NINEBYSIX), iv[:, None] * NINEBYSIX)
     pars = np.linalg.solve(denominator, numerator)
     if (pars[3] > 0.) or (pars[5] > 0.) or (pars[4] * pars[4] > pars[3] * pars[5]): # is this correct?
-        print "hlm.get_one_centroid(): WARNING: fit bad"
-        print "hlm.get_one_centroid():", pars
-        print "hlm.get_one_centroid(): returning integer centroid"
-        return xc, yc
+        # print "hlm.get_one_centroid(): WARNING: fit bad"
+        # print "hlm.get_one_centroid(): returning integer centroid"
+        return intcentroid
     # now magic happens...
-    return xc, yc
+    sdenominator = 4. * pars[3] * pars[5] - pars[4] * pars[4]
+    snumerator = np.array([pars[2] * pars[4] - 2. * pars[1] * pars[5],
+                          pars[1] * pars[4] - 2. * pars[2] * pars[3]])
+    if (sdenominator <= 0.) or not np.all(np.isfinite(snumerator)):
+        # print "hlm.get_one_centroid(): WARNING: pars bad"
+        # print "hlm.get_one_centroid(): returning integer centroid"
+        return intcentroid
+    centroid = intcentroid
+    centroid[:2] += snumerator / sdenominator
+    centroid[2] = 1.
+    return centroid
+
+def get_one_robust_centroid(one_flux, invvar, xc, yc):
+    """
+    input:
+    * `one_flux` - `np.array` shape `(ny, nx)` pixel intensities (not fluxes!)
+    * `invvar` - mask or weight image same shape as `one_flux`
+    * `xc, yc` - max or "central" pixel.
+
+    output:
+    * `centroid` - `np.array` shape `(3, )` with floating-point centroid and mask value
+
+    comments:
+    * does a median of leave-one-out trials of `get_one_centroid()`.
+
+    bugs:
+    * Ought to take in a prior / regularization that draws the answer towards a default (floating point) centroid.
+    """
+    loo_iv = invvar[None, :, :] * (np.ones((9, )))[:, None, None]
+    loo_iv[range(9), yc + YGRID, xc + XGRID] = 0. # create leave-one-out invvars
+    def goc(iv):
+        return get_one_centroid(one_flux, iv, xc, yc)
+    centroids = np.array(map(goc, loo_iv))
+    centroid = np.median(centroids, axis=0)
+    centroid[2] = np.min(centroids[:, 2])
+    return centroid
 
 def get_all_centroids(flux, mask):
     """
@@ -109,9 +143,24 @@ def get_all_centroids(flux, mask):
     xc, yc = get_max_pixel(flux, mask)
     iv = np.zeros_like(flux[0])
     iv[(mask > 0)] = 1.
-    def goc(c):
-        return get_one_centroid(c, iv, xc, yc)
-    return np.array(map(goc, flux))
+    def gorc(c):
+        return get_one_robust_centroid(c, iv, xc, yc)
+    return np.array(map(gorc, flux))
+
+def get_centroid_derivatives(flux, mask):
+    nt, ny, nx = flux.shape
+    centroids = get_all_centroids(flux, mask)
+    A = np.hstack((np.ones(nt)[:, None], centroids[:, :2]))
+    iv = centroids[:, 2]
+    bkg_sub_flux[iv <= 0., :, :] = 0.
+    ATA = np.dot(np.transpose(A), iv[:, None] * A)
+    centroid_derivatives = np.zeros((ny, nx, 2))
+    for yp in range(ny):
+        for xp in range(nx):
+            if mask[yp, xp] > 0:
+                ATb = np.dot(np.transpose(A), iv * bkg_sub_flux[:, yp, xp])
+                centroid_derivatives[yp, xp, :] = np.linalg.solve(ATA, ATb)[1:]
+    return centroid_derivatives
 
 if __name__ == "__main__":
     kicid = 3335426
@@ -126,4 +175,7 @@ if __name__ == "__main__":
     time_in_kbjd = table["TIME"]
     # raw_cnts = table["RAW_CNTS"]
     bkg_sub_flux = table["FLUX"]
-    centroids = get_all_centroids(bkg_sub_flux, mask)
+    derivs = get_centroid_derivatives(bkg_sub_flux, mask)
+    print derivs[:, :, 0]
+    print derivs[:, :, 1]
+
