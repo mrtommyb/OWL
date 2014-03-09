@@ -7,8 +7,10 @@ Copyright 2014 Dan Foreman-Mackey and David W. Hogg.
 
 Bugs:
 -----
+* No testing framework; testing would rock this.
 * Things called "flux" should be called "intensities".
 * Global variables with `API()` and `XGRID, YGRID, NINEBYSIX`.
+* Barely tested, and there are copious x <-> y issues possible.
 """
 
 import numpy as np
@@ -77,7 +79,7 @@ def get_one_centroid(one_flux, invvar, xc, yc):
     """
     ninebyone = (one_flux[yc + YGRID, xc + XGRID]).flatten()
     iv = (invvar[yc + YGRID, xc + XGRID]).flatten()
-    intcentroid = np.array([0., 0., 0.])
+    intcentroid = np.array([xc, yc, 0.])
     if np.sum(iv > 0.) < 7:
         # print "hlm.get_one_centroid(): WARNING: not enough data to support fit"
         # print "hlm.get_one_centroid(): returning integer centroid"
@@ -150,8 +152,10 @@ def get_all_centroids(flux, mask):
 def get_centroid_derivatives(flux, mask):
     nt, ny, nx = flux.shape
     centroids = get_all_centroids(flux, mask)
-    A = np.hstack((np.ones(nt)[:, None], centroids[:, :2]))
     iv = centroids[:, 2]
+    centroids = centroids[:, :2]
+    centroids -= np.median(centroids, axis=1)
+    A = np.hstack((np.ones(nt)[:, None], centroids))
     bkg_sub_flux[iv <= 0., :, :] = 0.
     ATA = np.dot(np.transpose(A), iv[:, None] * A)
     centroid_derivatives = np.zeros((ny, nx, 2))
