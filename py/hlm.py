@@ -184,6 +184,54 @@ def get_centroid_derivatives(flux, mask):
                 centroid_derivatives[yp, xp, :] = np.linalg.solve(ATA, ATb)[1:]
     return centroid_derivatives
 
+def get_orthogonal_partial_basis(derivs, mask):
+    """
+    inputs:
+    * `derivs` - `np.array` shape `(ny, nx, 2)` of positional derivatives from `get_centroid_derivatives`.
+    * `mask` - Kepler mask, shape of `derivs`, with `nd` nonzero elements.
+
+    outputs:
+    * `v` - `np.array` shape `(nd-2, nd)` containing orthonormal `nd`-vectors `v[d]`.
+
+    comments:
+    * Vectors are all orthonormal and all orthogonal to the input `derivs`.
+    * Roughly Gram-Schmidt orthonormalization.
+
+    bugs:
+    * Obtains numerical robustness by repeating all operations 3 times!
+    """
+    nd = np.sum(mask > 0)
+    v = np.zeros((nd, nd))
+    for dd in range(2):
+        v[dd] = (derivs[:, :, dd])[mask > 0]
+    # indx insanity
+    indx = (np.argsort(v[0] * v[0] + v[1] * v[1]))[::-1]
+    for dd in range(2, nd):
+        v[dd, indx[dd-2]] = 1.
+    for rep in range(3): # MAGIC 3
+        for dd in range(nd):
+            for ddd in range(dd):
+                v[dd] -= v[ddd] * np.dot(v[dd], v[ddd])
+            v[dd] /= np.sqrt(np.dot(v[dd], v[dd]))
+    # for dd in range(nd):
+    #     for ddd in range(dd):
+    #         print dd, ddd, np.dot(v[dd], v[ddd])
+    return v[2:]
+
+def get_objective_function(ln_new_weights, derivs, mask):
+    new_weights = np.exp(ln_new_weights)
+    objfn = 0.
+    objfn2 = np.abs(np.dot(new_weights, (derivs[:, :, 0])[mask > 0]))
+    print "abs dot against derivative 0", objfn2
+    objfn += objfn2
+    objfn3 = np.abs(np.dot(new_weights, (derivs[:, :, 1])[mask > 0]))
+    print "abs dot against derivative 1", objfn3
+    objfn += objfn3
+    objfn4 = np.sum((new_weights - old_weights) ** 2)
+    print "similarity to old weights:", objfn4
+    objfn += objfn4
+    return objfn
+
 if __name__ == "__main__":
     kicid = 3335426
     prefix = "kic_%08d" % (kicid, )
@@ -198,6 +246,4 @@ if __name__ == "__main__":
     # raw_cnts = table["RAW_CNTS"]
     bkg_sub_flux = table["FLUX"]
     derivs = get_centroid_derivatives(bkg_sub_flux, mask)
-    print derivs[:, :, 0]
-    print derivs[:, :, 1]
-
+    
