@@ -14,6 +14,7 @@ Bugs:
 """
 
 import numpy as np
+import scipy.optimize as op
 import kplr
 client = kplr.API()
 
@@ -57,7 +58,7 @@ def get_max_pixel(flux, mask):
     """
     nt, ny, nx = flux.shape
     median_image = np.median(flux, axis=0)
-    median_image[(mask < 1)] = 0.
+    median_image[mask < 1] = 0.
     max_indx = np.argmax(median_image)
     xc, yc = max_indx % nx, max_indx / nx
     if (xc < 1) or (yc < 1) or ((xc + 2) > nx) or ((yc + 2) > ny):
@@ -151,7 +152,7 @@ def get_all_centroids(flux, mask):
     """
     xc, yc = get_max_pixel(flux, mask)
     iv = np.zeros_like(flux[0])
-    iv[(mask > 0)] = 1.
+    iv[mask > 0] = 1.
     def gorc(c):
         return get_one_robust_centroid(c, iv, xc, yc)
     return np.array(pmap(gorc, flux))
@@ -218,18 +219,34 @@ def get_orthogonal_partial_basis(derivs, mask):
     #         print dd, ddd, np.dot(v[dd], v[ddd])
     return v[2:]
 
-def get_objective_function(ln_new_weights, derivs, mask):
+def get_objective_function(ln_new_weights, derivs, mask, factors):
+    """
+    bugs:
+    * Needs proper comment header here.
+    * Repeats tons of operations every time.
+    """
     new_weights = np.exp(ln_new_weights)
     objfn = 0.
+
+    objfn1 = np.abs(np.sum(new_weights) - np.sum(mask == 3))
+    print "abs total weight", objfn1
+    objfn += factors[0] * objfn1
+
     objfn2 = np.abs(np.dot(new_weights, (derivs[:, :, 0])[mask > 0]))
     print "abs dot against derivative 0", objfn2
-    objfn += objfn2
+    objfn += factors[1] * objfn2
+
     objfn3 = np.abs(np.dot(new_weights, (derivs[:, :, 1])[mask > 0]))
     print "abs dot against derivative 1", objfn3
-    objfn += objfn3
+    objfn += factors[1] * objfn3
+
+    old_weights = np.zeros_like(mask)
+    old_weights[mask == 3] = 1.
+    old_weights = old_weights[mask > 0]
     objfn4 = np.sum((new_weights - old_weights) ** 2)
-    print "similarity to old weights:", objfn4
-    objfn += objfn4
+    print "squared difference from old weights:", objfn4
+    objfn += factors[3] * objfn4
+
     return objfn
 
 if __name__ == "__main__":
@@ -246,4 +263,16 @@ if __name__ == "__main__":
     # raw_cnts = table["RAW_CNTS"]
     bkg_sub_flux = table["FLUX"]
     derivs = get_centroid_derivatives(bkg_sub_flux, mask)
-    
+    # make first guess at ln_weights
+    ln_weights = np.zeros_like(bkg_sub_flux[0]) - 100.
+    ln_weights[mask > 0] = -10.
+    ln_weights[mask == 3] = 0.
+    ln_weights = ln_weights[mask > 0]
+    factors = [1e8, 1e8, 1e4, 1e0]
+    ln_weights = op.fmin(get_objective_function, ln_weights, (derivs, mask, factors), maxfun=np.Inf, maxiter=np.Inf)
+    assert False
+    factors = [1e0, 1e0, 1e0, 1e0]
+    ln_weights = op.fmin(get_objective_function, ln_weights, (derivs, mask, factors), ftol=1e-10, xtol=1e-10)
+    new_weights = np.zeros_like(bkg_sub_flux[0])
+    new_weights[mask > 0] = np.exp(ln_weights)
+    print new_weights
