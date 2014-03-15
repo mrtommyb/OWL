@@ -7,6 +7,7 @@ Copyright 2014 Dan Foreman-Mackey and David W. Hogg.
 
 Bugs:
 -----
+* Contains useless photometry stuff that has nothing to do with astrometry.
 * No testing framework; testing would rock this.
 * Things called "flux" should be called "intensities".
 * Global variables with `API()` and `XGRID, YGRID, NINEBYSIX`.
