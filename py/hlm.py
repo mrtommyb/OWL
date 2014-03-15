@@ -99,7 +99,7 @@ def get_objective_function(weights, means, covars):
     * Needs more information in this comment header.
     """
     wm = np.dot(weights, means)
-    return np.dot(weights, np.dot(covars, weights)) / (wm * wm)
+    return 1.e6 * np.dot(weights, np.dot(covars, weights)) / (wm * wm)
 
 if __name__ == "__main__":
     kicid = 3335426
@@ -121,13 +121,14 @@ if __name__ == "__main__":
     II = (np.argsort(eigval))[::-1]
     print II
     print eigval[II]
-    print eigvec[II[0]]
+    foo = np.zeros_like(intensities[0])
+    foo[kplr_mask > 0] = eigvec[II[0]]
+    print foo
     sap_weights = np.zeros(kplr_mask.shape)
     sap_weights[kplr_mask == 3] = 1
     sap_weights = sap_weights[kplr_mask > 0]
     start_weights = np.ones(means.shape)
-    hlm_weights = op.fmin(get_objective_function, start_weights, args = (means, covars))
-    print "SAP", get_objective_function(sap_weights, means, covars)
+    hlm_weights = op.fmin(get_objective_function, start_weights, args = (means, covars), maxfun = np.Inf, maxiter = np.Inf)
     print "start", get_objective_function(start_weights, means, covars)
     print "HLM", get_objective_function(hlm_weights, means, covars)
     foo = np.zeros_like(intensities[0])
