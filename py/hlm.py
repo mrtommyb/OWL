@@ -115,6 +115,13 @@ if __name__ == "__main__":
     # raw_cnts = table["RAW_CNTS"]
     intensities = table["FLUX"]
     means, covars = get_intensity_means_and_covariances(intensities, kplr_mask)
+    eig = np.linalg.eig(covars)
+    eigval = eig[0]
+    eigvec = eig[1]
+    II = (np.argsort(eigval))[::-1]
+    print II
+    print eigval[II]
+    print eigvec[II[0]]
     sap_weights = np.zeros(kplr_mask.shape)
     sap_weights[kplr_mask == 3] = 1
     sap_weights = sap_weights[kplr_mask > 0]
@@ -123,5 +130,10 @@ if __name__ == "__main__":
     print "SAP", get_objective_function(sap_weights, means, covars)
     print "start", get_objective_function(start_weights, means, covars)
     print "HLM", get_objective_function(hlm_weights, means, covars)
-    print np.linalg.eig(covars)[0]
+    foo = np.zeros_like(intensities[0])
+    foo[kplr_mask > 0] = hlm_weights
+    hlm_weights = foo
     print hlm_weights
+    sap_weights = np.zeros_like(intensities[0])
+    sap_weights[kplr_mask == 3] = 1.
+    print sap_weights
