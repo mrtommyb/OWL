@@ -116,7 +116,7 @@ def get_chi_squareds(intensities, means, covars, kplr_mask):
     invcov = np.linalg.inv(covars)
     return np.sum(resids * np.dot(resids, invcov), axis=1)
 
-def get_sigma_clip_mask(intensities, means, covars, kplr_mask):
+def get_sigma_clip_mask(intensities, means, covars, kplr_mask, nsigma=4.0):
     """
     bugs:
     * Needs more information in this comment header.
@@ -124,7 +124,7 @@ def get_sigma_clip_mask(intensities, means, covars, kplr_mask):
     ndof = np.sum(kplr_mask > 0)
     chi_squareds = get_chi_squareds(intensities, means, covars, kplr_mask)
     mask = np.zeros_like(chi_squareds)
-    mask[chi_squareds < ndof + 5. * np.sqrt(2. * ndof)] = 1.
+    mask[chi_squareds < ndof + nsigma * np.sqrt(2. * ndof)] = 1.
     return mask
 
 if __name__ == "__main__":
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     # raw_cnts = table["RAW_CNTS"]
     intensities = table["FLUX"]
     means, covars = get_means_and_covariances(intensities, kplr_mask)
-    for i in range(3):
+    for i in range(5):
         clip_mask = get_sigma_clip_mask(intensities, means, covars, kplr_mask)
         means, covars = get_means_and_covariances(intensities, kplr_mask, clip_mask)
     eig = np.linalg.eig(covars)
@@ -157,13 +157,19 @@ if __name__ == "__main__":
     sap_weights[kplr_mask == 3] = 1
     sap_weights = sap_weights[kplr_mask > 0]
     start_weights = np.ones(means.shape)
-    hlm_weights = op.fmin(get_objective_function, start_weights, args = (means, covars), maxfun = np.Inf, maxiter = np.Inf)
+    hlm_weights = op.fmin(get_objective_function, start_weights, args=(means, covars), maxfun=np.Inf, maxiter=np.Inf, xtol=1e-9, ftol=1e-9)
+    print "SAP", get_objective_function(sap_weights, means, covars)
     print "start", get_objective_function(start_weights, means, covars)
     print "HLM", get_objective_function(hlm_weights, means, covars)
-    foo = np.zeros_like(intensities[0])
-    foo[kplr_mask > 0] = hlm_weights
-    hlm_weights = foo
-    print hlm_weights
     sap_weights = np.zeros_like(intensities[0])
     sap_weights[kplr_mask == 3] = 1.
-    print sap_weights
+    print "SAP weights:", sap_weights
+    foo = np.zeros_like(intensities[0])
+    foo[kplr_mask > 0] = means
+    print "means:", foo
+    foo = np.zeros_like(intensities[0])
+    foo[kplr_mask > 0] = np.diag(covars)
+    print "diag(covars):", foo
+    foo = np.zeros_like(intensities[0])
+    foo[kplr_mask > 0] = hlm_weights
+    print "HLM weights:", foo
