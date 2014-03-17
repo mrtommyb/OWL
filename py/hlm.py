@@ -37,6 +37,29 @@ def get_target_pixel_file(kicid, quarter):
         raise ValueError("No dataset for that quarter")
     return tpfs[0]
 
+def evaluate_circular_two_d_gaussian(dx, dy, sigma2):
+    return (1. / (2. * np.pi * sigma2)) * np.exp(-0.5 * (dx * dx + dy * dy) / sigma2)
+
+def get_fake_data(nt, ny, nx):
+    """
+    bugs:
+    * Needs comment header.
+    * Many magic numbers.
+    """
+    fake_sky_noise = 1. * np.random.normal(size = (nt, ny, nx))
+    xc, yc = nx - 2.65, ny - 2.15 # MAGIC NUMBERS
+    xc = nx - 2.65 + 5e-5 * np.arange(nt) # MAGIC
+    yc = ny - 2.15 - 2e-5 * np.arange(nt) # MAGIC
+    xg, yg = np.meshgrid(range(nx), range(ny))
+    flux = 10000. # MAGIC
+    fake_mean = flux * evaluate_circular_two_d_gaussian(xg[None, :, :] - xc[:, None, None], yg[None, :, :] - yc[:, None, None], 1.) # MAGIC NUMBER
+    fake_obj_noise = 0.1 * np.sqrt(fake_mean / flux) * np.random.normal(size = (nt, ny, nx)) # MAGIC FORMULA
+    fake_mask = np.ones((ny, nx))
+    fake_mask[0, 0] = 0
+    mean_fake_mean = np.mean(fake_mean, axis=0)
+    fake_mask[mean_fake_mean > np.percentile(mean_fake_mean, 87.5)] = 3 # MORE MAGIC
+    return fake_mean + fake_sky_noise + fake_obj_noise, fake_mask
+
 def get_pixel_mask(intensities, kplr_mask):
     """
     bugs:
@@ -128,18 +151,21 @@ def get_sigma_clip_mask(intensities, means, covars, kplr_mask, nsigma=4.0):
     return mask
 
 if __name__ == "__main__":
-    kicid = 3335426
-    prefix = "kic_%08d" % (kicid, )
-    tpf = get_target_pixel_file(kicid, 5)
-    if False:
-        fig = tpf.plot()
-        fig.savefig(prefix + ".png")
-    with tpf.open() as hdu:
-        table = hdu[1].data
-        kplr_mask = hdu[2].data
-    time_in_kbjd = table["TIME"]
-    # raw_cnts = table["RAW_CNTS"]
-    intensities = table["FLUX"]
+    if True:
+        intensities, kplr_mask = get_fake_data(4700, 4, 5)
+    else:
+        kicid = 3335426
+        prefix = "kic_%08d" % (kicid, )
+        tpf = get_target_pixel_file(kicid, 5)
+        if False:
+            fig = tpf.plot()
+            fig.savefig(prefix + ".png")
+        with tpf.open() as hdu:
+            table = hdu[1].data
+            kplr_mask = hdu[2].data
+        time_in_kbjd = table["TIME"]
+        raw_cnts = table["RAW_CNTS"]
+        intensities = table["FLUX"]
     means, covars = get_means_and_covariances(intensities, kplr_mask)
     for i in range(5):
         clip_mask = get_sigma_clip_mask(intensities, means, covars, kplr_mask)
@@ -169,7 +195,10 @@ if __name__ == "__main__":
     print "means:", foo
     foo = np.zeros_like(intensities[0])
     foo[kplr_mask > 0] = np.diag(covars)
+    mean_img = foo
     print "diag(covars):", foo
     foo = np.zeros_like(intensities[0])
     foo[kplr_mask > 0] = hlm_weights
+    weight_img = foo
     print "HLM weights:", foo
+    print "frac pixel contribs:", mean_img * weight_img / np.sum(mean_img * weight_img)
