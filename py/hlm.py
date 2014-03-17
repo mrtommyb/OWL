@@ -59,22 +59,26 @@ def get_epoch_mask(pixel_mask, kplr_mask):
     epoch_mask[(foo == bar)] = 1
     return epoch_mask
 
-def get_intensity_means_and_covariances(intensities, kplr_mask):
+def get_means_and_covariances(intensities, kplr_mask, clip_mask=None):
     """
     inputs:
     * `intensities` - what `kplr` calls `FLUX` from the `target_pixel_file`
-    * `mask` - what `kplr` calls `hdu[2].data` from the same
+    * `kplr_mask` - what `kplr` calls `hdu[2].data` from the same
+    * `clip_mask` [optional] - read the source, Luke
 
     outputs:
     * `means` - one-d array of means for `kplr_mask > 0` pixels
     * `covars` - two-d array of covariances for same
 
     bugs:
+    * Only deals with unit and zero weights, nothing else.
     * Uses for loops!
     * Needs more information in this comment header.
     """
     pixel_mask = get_pixel_mask(intensities, kplr_mask)
     epoch_mask = get_epoch_mask(pixel_mask, kplr_mask)
+    if clip_mask is not None:
+        epoch_mask *= clip_mask
     means = np.mean(intensities[epoch_mask > 0, :, :], axis=0)
     nt, ny, nx = intensities.shape
     covars = np.zeros((ny, nx, ny, nx))
@@ -83,7 +87,7 @@ def get_intensity_means_and_covariances(intensities, kplr_mask):
             for kk in range(nx):
                 for ll in range(ny):
                     if (kplr_mask[jj, ii] > 0) and (kplr_mask[ll, kk] > 0) and (covars[jj, ii, ll, kk] == 0):
-                        mask = pixel_mask[:, jj, ii] * pixel_mask[:, ll, kk]
+                        mask = epoch_mask * pixel_mask[:, jj, ii] * pixel_mask[:, ll, kk]
                         data = (intensities[:, jj, ii] - means[jj, ii]) * (intensities[:, ll, kk] - means[ll, kk])
                         cc = np.mean(data[(mask > 0)])
                         covars[jj, ii, ll, kk] = cc
@@ -91,6 +95,8 @@ def get_intensity_means_and_covariances(intensities, kplr_mask):
     means = means[(kplr_mask > 0)]
     covars = covars[(kplr_mask > 0)]
     covars = covars[:, (kplr_mask > 0)]
+    print "get_means_and_covariancess():", means
+    print "get_means_and_covariancess():", np.trace(covars), np.linalg.det(covars), np.sum(epoch_mask)
     return means, covars
 
 def get_objective_function(weights, means, covars):
@@ -100,6 +106,26 @@ def get_objective_function(weights, means, covars):
     """
     wm = np.dot(weights, means)
     return 1.e6 * np.dot(weights, np.dot(covars, weights)) / (wm * wm)
+
+def get_chi_squareds(intensities, means, covars, kplr_mask):
+    """
+    bugs:
+    * Needs more information in this comment header.
+    """
+    resids = intensities[:, kplr_mask > 0] - means[None, :]
+    invcov = np.linalg.inv(covars)
+    return np.sum(resids * np.dot(resids, invcov), axis=1)
+
+def get_sigma_clip_mask(intensities, means, covars, kplr_mask):
+    """
+    bugs:
+    * Needs more information in this comment header.
+    """
+    ndof = np.sum(kplr_mask > 0)
+    chi_squareds = get_chi_squareds(intensities, means, covars, kplr_mask)
+    mask = np.zeros_like(chi_squareds)
+    mask[chi_squareds < ndof + 5. * np.sqrt(2. * ndof)] = 1.
+    return mask
 
 if __name__ == "__main__":
     kicid = 3335426
@@ -114,7 +140,10 @@ if __name__ == "__main__":
     time_in_kbjd = table["TIME"]
     # raw_cnts = table["RAW_CNTS"]
     intensities = table["FLUX"]
-    means, covars = get_intensity_means_and_covariances(intensities, kplr_mask)
+    means, covars = get_means_and_covariances(intensities, kplr_mask)
+    for i in range(3):
+        clip_mask = get_sigma_clip_mask(intensities, means, covars, kplr_mask)
+        means, covars = get_means_and_covariances(intensities, kplr_mask, clip_mask)
     eig = np.linalg.eig(covars)
     eigval = eig[0]
     eigvec = eig[1]
