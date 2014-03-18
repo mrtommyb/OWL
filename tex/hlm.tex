@@ -1,7 +1,92 @@
 \documentclass[12pt,letterpaper]{article}
 
+\newcommand{\foreign}[1]{\textsl{#1}}
+\newcommand{\project}[1]{\textsl{#1}}
+
 \begin{document}
 
-Hello World.
+Precise photometry is the bread-and-butter of the exoplanet community.
+It is also crucial for [other things].
+
+Imagine you are trying to do very sensitive relative photometry on a variable source.
+The most precise methodologies at present involve fixing the position of the source on the detector
+  (cite examples)
+  to reduce dependency of the results on the flat-field or flat-fielding errors.
+They also often involve defocusing the telescope
+  (cite examples),
+  to illuminate the pixels more uniformly
+  (and hence reduce intra-pixel sensitivity issues),
+  avoid saturation,
+  and make the observations less atmosphere-dependent.
+There are also strategies related to calibration or the choices of comparison stars
+  (cite examples).
+Once all these choices are made,
+  the choice of methodology for actually photometering the source remains.
+Most projects choose something akin to aperture photometry
+  (cite examples),
+  in which the pixels within an aperture are co-added with unit weights,
+  and pixels outside the aperture are not used at all.
+Here we ask only about this last choice:
+What is the best way to measure the brightness of a nearly constant source,
+  given a set of precise images of the source taken over time?
+
+We are going to answer this question using optimization, of course;
+  we are going to find the ``best'' method.
+We will assume that the investigator obeyed the usual rules,
+  so he or she fixed the position of the star on the detector,
+  defocused the telescope,
+  and avoided saturation.
+However, we are also going to assume---%
+  as is \emph{always the case}---%
+  that there are some residual,
+  unaccounted-for positional offsets (jitter) and point-spread-function changes.
+These offsets and changes could be random or systematic over time,
+  but we will assume that they are unknown \foreign{a priori}.
+That is, the telescope house-keeping data are not good enough to track them at the level we care about.
+We are trying to measure \emph{extremely} precise photometry,
+  at the level of $10^{-4}$ or $10^{-5}$ or better.
+
+The conditions we have assumed might seem strange,
+  but they are generic for the most precise photometry systems currently operating.
+\project{Kepler}, for instance, has all of these problems,
+  as does [insert projects here, like Wright's].
+
+% in what follows the object of photometry is a ``star'' not a ``source''.
+
+You can think of this problem as the problem of finding the best strategy in a single-player game.
+The rules of this game are as follows:
+\begin{itemize}
+\item
+  You have multi-epoch single-band imaging (many images)
+  and a position in that imaging of a star you care about (the ``object'' star).
+  You might also have some ``pixel mask'' indicating what pixels you are permitted to use
+  in the vicinity of that star.
+\item
+  You may or may not have a list of ``comparison'' stars
+  that are used to calibrate or ratio the photometry of the object star.
+  If you don't, then you can assume that the imaging is very well calibrated.
+\item
+  You expect the star to be fairly stationary,
+  but that in each image it has been offset slightly by some amount from its fiducial position.
+  You have no meta-data to help you understand those small offsets.
+  You also assume that any comparison stars are subject to small offsets.
+  The comparison-star offsets are not necessarily the same as the object-star offsets,
+  because there is camera rotation, variable optical distortion, proper motion, and parallax.
+\item
+  You expect the point-spread function (PSF) to be fairly constant,
+  but that in each image it has a small difference from the fiducial point-spread function.
+  Again, you have no meta-data to help with this,
+  and you can't assume that the comparison star PSFs vary the same way.
+\item
+  You don't fully believe any meta-data you have about read noise or gains,
+  so you don't have a precise noise estimate for any pixel at any epoch.
+\item
+  When you photometer a star,
+  the only operation you are permitted to do is make a linear weighted sum of pixels in the images.
+  Furthermore, this weighted sum must be precisely identical from epoch to epoch.
+  That is, the ``aperture''
+  (which in fact will be some complicated set of pixel weights)
+\end{itemize}
+These rules are generic.  Etc.
 
 \end{document}
