@@ -151,7 +151,8 @@ def get_sigma_clip_mask(intensities, means, covars, kplr_mask, nsigma=4.0):
     return mask
 
 if __name__ == "__main__":
-    if True:
+    Fake = False
+    if Fake:
         intensities, kplr_mask = get_fake_data(4700, 4, 5)
     else:
         kicid = 3335426

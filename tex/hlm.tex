@@ -5,6 +5,12 @@
 
 \begin{document}
 
+\begin{abstract}
+foo
+\end{abstract}
+
+\section{Rules of the photometry game}
+
 Precise photometry is the bread-and-butter of the exoplanet community.
 It is also crucial for [other things].
 
@@ -53,40 +59,116 @@ The conditions we have assumed might seem strange,
 
 % in what follows the object of photometry is a ``star'' not a ``source''.
 
-You can think of this problem as the problem of finding the best strategy in a single-player game.
-The rules of this game are as follows:
+It is possible to think of this problem as the problem of finding the best strategy in a single-player game.
+\emph{The Rules} of this game are as follows:
 \begin{itemize}
 \item
-  You have multi-epoch single-band imaging (many images)
-  and a position in that imaging of a star you care about (the ``object'' star).
-  You might also have some ``pixel mask'' indicating what pixels you are permitted to use
+  There is copious multi-epoch single-band imaging,
+  with many epochs (many images),
+  and a known position in that imaging of a star of great interest (the ``object'' star).
+  There is also perhaps some ``pixel mask'' indicating what pixels are permitted for use
   in the vicinity of that star.
 \item
-  You may or may not have a list of ``comparison'' stars
+  There may or may not be a list of ``comparison'' stars
   that are used to calibrate or ratio the photometry of the object star.
-  If you don't, then you can assume that the imaging is very well calibrated.
+  If there aren't, then it can be assumed that the imaging is very well calibrated.
 \item
-  You expect the star to be fairly stationary,
-  but that in each image it has been offset slightly by some amount from its fiducial position.
-  You have no meta-data to help you understand those small offsets.
-  You also assume that any comparison stars are subject to small offsets.
-  The comparison-star offsets are not necessarily the same as the object-star offsets,
+  It is expected that the star is fairly stationary in device coordinates (pixel location).
+  However, in each image it has been offset slightly by some amount from its fiducial position.
+  There are no reliable meta-data to help you understand those small offsets.
+  Any comparison stars are also subject to small offsets;
+  the comparison-star offsets are not necessarily the same as the object-star offsets,
   because there is camera rotation, variable optical distortion, proper motion, and parallax.
 \item
-  You expect the point-spread function (PSF) to be fairly constant,
-  but that in each image it has a small difference from the fiducial point-spread function.
-  Again, you have no meta-data to help with this,
-  and you can't assume that the comparison star PSFs vary the same way.
+  It is expected that the point-spread function (PSF) is fairly constant.
+  However, again, in each image it has a small difference from the fiducial point-spread function.
+  There are no reliable meta-data to help with this,
+  and the comparison star PSFs will also vary but not in precisely the same way,
+  though their variations might be non-trivially correlated.
 \item
-  You don't fully believe any meta-data you have about read noise or gains,
-  so you don't have a precise noise estimate for any pixel at any epoch.
+  There are no reliable meta-data about read noise or gains,
+  so there is no precise noise estimate for any pixel at any epoch.
 \item
   When you photometer a star,
-  the only operation you are permitted to do is make a linear weighted sum of pixels in the images.
-  Furthermore, this weighted sum must be precisely identical from epoch to epoch.
+  the only operation you are permitted is linear weighted sums of pixels in the images.
+  Furthermore, any weighted sums must be precisely identical from epoch to epoch.
   That is, the ``aperture''
-  (which in fact will be some complicated set of pixel weights)
+  (which in fact may be some complicated set of pixel weights)
+  is required to be identical from image to image.
 \end{itemize}
-These rules are generic.  Etc.
+These rules are generic;
+  this is a common situation for precise, multi-epoch photometry.
+
+The only rule to which we object is the last one:
+In principle it should be better to do focal-plane modeling
+  and perform photometry as a maximum-likelihood value
+  or some statistics of a posterior PDF
+  based on a parameterized likelihood function.
+However, there are many applications in which
+  the physical information one would like for building such a model is not available.
+We would parameterize and fit nonetheless,
+  but most astronomical projects don't take this approach at present.
+There are also situations in which the output of full likelihood fitting for the data
+  shows correlations between the final photometry and nuisance parameters (such as PSF parameters).
+In these cases, the investigator is left wondering if the residual photometric variance
+  has contributions from nuisance-parameter variance or fit residuals or model mismatch.
+
+\section{Well-calibrated data}
+
+In the (possibly fantastical) situation in which the imaging data are all properly calibrated,
+  we have no need for comparison stars.
+We are going do the photometry using nothing but the pixels near the object star.
+
+Before we say what ``properly calibrated'' means,
+  it is necessary to specify what we mean by an ``image''.
+Ordinarily it is our view that
+  an image is a measurement of the smoothed intensity field
+  or smoothed photon phase-space density.
+It ought to have units of energy per time per area per solid angle
+  or photons per time per area per solid angle.
+The problem with this view of an image
+  is that if we do aperture photometry---%
+  that is, if we make linear weighted sums of image pixels---%
+  to get a total stellar flux,
+  the weights in the weighted sum must have units of \emph{solid angle}.
+Small changes to the optics or atmosphere will change the astrometric mapping of the camera,
+  changing the solid angles of the pixels.
+Aperture photometry is the wrong thing to do in this formulation of an image;
+  or it is an okay thing to do if the weights are permitted to vary with the astrometric distortion.
+That would violate \emph{The Rules} above.
+
+So the image we want for these purposes is not a measurement of the intensity field,
+  but rather a kind of ``flux map''.
+It ought to have units of energy per time per area
+  or photons per time per area.
+These values can be co-added with dimensionless weights to deliver a stellar flux.
+The only difference between an intensity image and a flux map is a factor of
+  the angular size of the pixels.
+In many imagers pixels are similar in size so these differences aren't apparent.
+However, at the levels of precision we care about here
+  ($10^{-4}$ or $10^{-5}$ or better)
+  these details matter.
+
+What is meant by ``properly calibrated''?
+The image (flux map) is properly calibrated when it is can be treated as a measurement of---%
+  or is directly proportional to---%
+  a smoothed map of energy or photon number per time per area.
+It is ``smoothed'' because it is convolved (or correlated) with some finite
+  and possibly spatially varying PSF
+  (which we don't know).
+
+Are any imaging data properly calibrated according to these criteria?
+We don't know, but the \project{Kepler} Satellite may be.
+The standard data products of the \project{Hubble Space Telescope}
+  are given in intensity units,
+  but the astrometric solution is known to high precision,
+  so (with a tiny bit of work)
+  these also can be properly calibrated for aperture photometry according to this definition.
+
+We do not endorse the view that images should be presented as flux maps!
+We are just sayin' that \emph{if} you need to obey \emph{The Rules},
+  then you need to convert your intensity maps into flux maps before playing the game.
+
+\section{Comparison stars}
 
 \end{document}
