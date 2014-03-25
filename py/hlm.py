@@ -13,8 +13,12 @@ Bugs:
 * Barely tested, and there are copious x <-> y issues possible.
 """
 
+if __name__ == '__main__':
+    import matplotlib
+    matplotlib.use('Agg')
 import numpy as np
 import scipy.optimize as op
+import pylab as plt
 import kplr
 client = kplr.API()
 
@@ -40,20 +44,22 @@ def get_target_pixel_file(kicid, quarter):
 def evaluate_circular_two_d_gaussian(dx, dy, sigma2):
     return (1. / (2. * np.pi * sigma2)) * np.exp(-0.5 * (dx * dx + dy * dy) / sigma2)
 
-def get_fake_data(nt, ny, nx):
+def get_fake_data(nt, ny=5, nx=7):
     """
     bugs:
     * Needs comment header.
     * Many magic numbers.
     """
-    fake_sky_noise = 1. * np.random.normal(size = (nt, ny, nx))
-    xc, yc = nx - 2.65, ny - 2.15 # MAGIC NUMBERS
-    xc = nx - 2.65 + 5e-5 * np.arange(nt) # MAGIC
-    yc = ny - 2.15 - 2e-5 * np.arange(nt) # MAGIC
+    xc, yc = 3. + 1. / 7., 2. + 4. / 9. # MAGIC NUMBERS
+    psf_sigma2 = 1.1 * 1.1 # MAGIC NUMBER (in pixels * pixels)
+    flux = 10000. # MAGIC NUMBER (in ADU per image)
+    gain = 0.0 # MAGIC NUMBER (in electrons per ADU)
+    fake_sky_noise = np.sqrt(1.) * np.random.normal(size = (nt, ny, nx)) # MAGIC NUMBER in ADU per pixel per image
+    xc = np.zeros(nt) + xc
+    yc = np.zeros(nt) + yc
     xg, yg = np.meshgrid(range(nx), range(ny))
-    flux = 10000. # MAGIC
-    fake_mean = flux * evaluate_circular_two_d_gaussian(xg[None, :, :] - xc[:, None, None], yg[None, :, :] - yc[:, None, None], 1.) # MAGIC NUMBER
-    fake_obj_noise = 0.1 * np.sqrt(fake_mean / flux) * np.random.normal(size = (nt, ny, nx)) # MAGIC FORMULA
+    fake_mean = flux * evaluate_circular_two_d_gaussian(xg[None, :, :] - xc[:, None, None], yg[None, :, :] - yc[:, None, None], psf_sigma2)
+    fake_obj_noise = np.sqrt(gain * fake_mean) * np.random.normal(size = (nt, ny, nx))
     fake_mask = np.ones((ny, nx))
     fake_mask[0, 0] = 0
     mean_fake_mean = np.mean(fake_mean, axis=0)
@@ -75,8 +81,7 @@ def get_epoch_mask(pixel_mask, kplr_mask):
     bugs:
     * needs comment header.
     """
-    foo = np.sum((pixel_mask > 0), axis=1)
-    foo = np.sum(foo, axis=1)
+    foo = np.sum(np.sum((pixel_mask > 0), axis=2), axis=1)
     epoch_mask = np.zeros_like(foo)
     bar = np.sum(kplr_mask > 0)
     epoch_mask[(foo == bar)] = 1
@@ -153,7 +158,8 @@ def get_sigma_clip_mask(intensities, means, covars, kplr_mask, nsigma=4.0):
 if __name__ == "__main__":
     Fake = False
     if Fake:
-        intensities, kplr_mask = get_fake_data(4700, 4, 5)
+        intensities, kplr_mask = get_fake_data(4700)
+        time_in_kbjd = np.arange(len(intensities))
     else:
         kicid = 3335426
         prefix = "kic_%08d" % (kicid, )
@@ -190,16 +196,36 @@ if __name__ == "__main__":
     print "HLM", get_objective_function(hlm_weights, means, covars)
     sap_weights = np.zeros_like(intensities[0])
     sap_weights[kplr_mask == 3] = 1.
+    foo = np.zeros_like(intensities[0])
+    foo[kplr_mask == 3] = 1.
+    sap_weight_img = foo
     print "SAP weights:", sap_weights
     foo = np.zeros_like(intensities[0])
     foo[kplr_mask > 0] = means
+    mean_img = foo
     print "means:", foo
     foo = np.zeros_like(intensities[0])
     foo[kplr_mask > 0] = np.diag(covars)
-    mean_img = foo
     print "diag(covars):", foo
     foo = np.zeros_like(intensities[0])
     foo[kplr_mask > 0] = hlm_weights
-    weight_img = foo
+    hlm_weight_img = foo
+    hlm_weight_img *= np.sum(sap_weight_img * mean_img) / np.sum(hlm_weight_img * mean_img) # insanity
     print "HLM weights:", foo
-    print "frac pixel contribs:", mean_img * weight_img / np.sum(mean_img * weight_img)
+    print "frac pixel contribs:", mean_img * hlm_weight_img / np.sum(mean_img * hlm_weight_img)
+    pixel_mask = get_pixel_mask(intensities, kplr_mask)
+    epoch_mask = get_epoch_mask(pixel_mask, kplr_mask)
+    fubar_intensities = intensities
+    fubar_intensities[pixel_mask == 0] = 0.
+    sap_lightcurve = np.sum(np.sum(fubar_intensities * sap_weight_img[None, :, :], axis=2), axis=1)
+    hlm_lightcurve = np.sum(np.sum(fubar_intensities * hlm_weight_img[None, :, :], axis=2), axis=1)
+    print "sap_lightcurve", np.min(sap_lightcurve), np.max(sap_lightcurve)
+    plt.clf()
+    I = epoch_mask > 0
+    plt.plot(time_in_kbjd[I], sap_lightcurve[I], "k-", alpha=0.5)
+    plt.plot(time_in_kbjd[I], hlm_lightcurve[I], "k-")
+    plt.xlabel("time-ish")
+    plt.ylabel("flux")
+    plt.ylim(np.array([0.9, 1.1]) * np.median(hlm_lightcurve))
+    plt.savefig("hlm.png")
+
