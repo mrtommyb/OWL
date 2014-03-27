@@ -1,13 +1,51 @@
-\documentclass[12pt,letterpaper]{article}
+\documentclass[12pt, letterpaper, preprint]{aastex}
 
-\newcommand{\foreign}[1]{\textsl{#1}}
+\usepackage{color,hyperref}
+\definecolor{linkcolor}{rgb}{0,0,0.5}
+\hypersetup{colorlinks=true,linkcolor=linkcolor,citecolor=linkcolor,
+            filecolor=linkcolor,urlcolor=linkcolor}
+
 \newcommand{\project}[1]{\textsl{#1}}
+\newcommand{\foreign}[1]{\textsl{#1}}
+\newcommand{\etal}{\foreign{et\,al.}}
 
 \begin{document}
 
+\title{
+  Optimized ``soft'' aperture photometry for time-domain astronomy
+}
+\author{
+  David W. Hogg,
+  Dan Foreman-Mackey,
+  Jonathan Goodman,
+  Fengji Hou,
+  others
+}
+
 \begin{abstract}
-foo
+Precise stellar photometry campaigns by \project{Kepler}, \project{Spitzer}, and \project{PanSTARRS},
+  among many others,
+  create precise lightcurves by fixing the star in detector coordinates,
+  and estimating brightness with a fixed linear combination of background-subtracted pixel values.
+Under any complete set of assumptions about the noise in the detector,
+  there is a particular choice of pixel weights for use in the brightness estimate
+  that maximizes signal-to-noise.
+When precision requirements are extremely high,
+  the noise model must necessarily include pointing and point-spread-function variations,
+  which introduce highly correlated noise at the pixel level.
+Here we generalize previous results on optimal photometric estimators
+  to include arbitrarily correlated pixels.
+Amusingly, the approach we advocate does not require any advance knowledge of any noise source;
+  once there are enough epochs observed,
+  the pixel-level data are sufficient to build an empirical data-driven correlated noise model.
+We demonstrate enormous improvement to the \project{Kepler}
 \end{abstract}
+
+\keywords{
+  foo
+  ---
+  bar
+}
 
 \section{Rules of the photometry game}
 
@@ -103,7 +141,7 @@ The only rule to which we object is the last one:
 In principle it should be better to do focal-plane modeling
   and perform photometry as a maximum-likelihood value
   or some statistics of a posterior PDF
-  based on a parameterized likelihood function.
+  based on a parameterized likelihood function (for example, \citealt{hoggwhitepaper}).
 However, there are many applications in which
   the physical information one would like for building such a model is not available.
 We would parameterize and fit nonetheless,
@@ -112,6 +150,23 @@ There are also situations in which the output of full likelihood fitting for the
   shows correlations between the final photometry and nuisance parameters (such as PSF parameters).
 In these cases, the investigator is left wondering if the residual photometric variance
   has contributions from nuisance-parameter variance or fit residuals or model mismatch.
+
+There have been some previous attempts to optimize photometric estimators subject to \emph{The Rules},
+  in generic (but limiting) situations.
+When the pointing and point-spread function are both known precisely,
+  the pixel noise variance is known for every pixel,
+  and the pixel noise is independent (uncorrelated) pixel-to-pixel,
+  there are simple analytic results (\cite{naylor}).
+These results reduce to the psf-as-matched-filter standard practice
+  in the further simplification of sky-dominated noise.
+There are no previous results (to our knowledge) that take account of
+  the highly covariant noise created by variable pointing or optics.
+This is the first primary novelty of this work.
+The second primary novelty is the realization that the noise---%
+  even the covariant part created by optics and pointing---%
+  can be determined empirically from the data themselves,
+  with no prior knowledge of the characteristics of the detector,
+  telescope, or atmosphere.
 
 \section{Well-calibrated data}
 
@@ -157,6 +212,8 @@ It is ``smoothed'' because it is convolved (or correlated) with some finite
   and possibly spatially varying PSF
   (which we don't know).
 
+NEED TO SAY SOMETHING ABOUT ZERO-MEAN RESIDUAL BACKGROUND SUBTRACTION.
+
 Are any imaging data properly calibrated according to these criteria?
 We don't know, but the \project{Kepler} Satellite may be.
 The standard data products of the \project{Hubble Space Telescope}
@@ -184,5 +241,27 @@ Intrapixel sensitivity variations;
 What happens if you don't have good background subtraction or a DC level?
 
 What happens if you have crowding or blending of stars?
+
+\acknowledgments
+It is a pleasure to thank
+  Christian Knigge (Southampton) and
+  Molei Tao (NYU)
+for valuable comments.
+This work was partially supported by the Moore--Sloan Data Science Environment at NYU,
+  by NASA (grant NNX08AJ48G).
+  and by the NSF (grant AST-0908357).
+This research made use of the \project{NASA Astrophysics Data System}.
+
+\newcommand{\arxiv}[1]{\href{http://arxiv.org/abs/#1}{arXiv:#1}}
+\begin{thebibliography}{}\raggedright
+\bibitem[Hogg \etal(2013)]{hoggwhitepaper}
+Hogg, D.~W., Angus, R., Barclay, T., et al.\ 2013,
+Maximizing Kepler science return per telemetered pixel: Detailed models of the focal plane in the two-wheel era,
+\arxiv{1309.0653}
+\bibitem[Naylor(1998)]{naylor}
+Naylor, T.\ 1998,
+An optimal extraction algorithm for imaging photometry,
+\mnras, 296, 339
+\end{thebibliography}
 
 \end{document}
