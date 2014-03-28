@@ -17,7 +17,6 @@ if __name__ == '__main__':
     import matplotlib
     matplotlib.use('Agg')
 import numpy as np
-import scipy.optimize as op
 import pylab as plt
 import kplr
 client = kplr.API()
@@ -190,7 +189,7 @@ if __name__ == "__main__":
     sap_weights[kplr_mask == 3] = 1
     sap_weights = sap_weights[kplr_mask > 0]
     start_weights = np.ones(means.shape)
-    hlm_weights = op.fmin(get_objective_function, start_weights, args=(means, covars), maxfun=np.Inf, maxiter=np.Inf, xtol=1e-9, ftol=1e-9)
+    hlm_weights = np.linalg.solve(covars, means)
     print "SAP", get_objective_function(sap_weights, means, covars)
     print "start", get_objective_function(start_weights, means, covars)
     print "HLM", get_objective_function(hlm_weights, means, covars)
