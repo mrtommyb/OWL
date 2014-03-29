@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-This file is part of the HLM project.
+This file is part of the OWL project.
 Copyright 2014 Dan Foreman-Mackey and David W. Hogg.
 
 Bugs:
@@ -189,10 +189,10 @@ if __name__ == "__main__":
     sap_weights[kplr_mask == 3] = 1
     sap_weights = sap_weights[kplr_mask > 0]
     start_weights = np.ones(means.shape)
-    hlm_weights = np.linalg.solve(covars, means)
+    owl_weights = np.linalg.solve(covars, means)
     print "SAP", get_objective_function(sap_weights, means, covars)
     print "start", get_objective_function(start_weights, means, covars)
-    print "HLM", get_objective_function(hlm_weights, means, covars)
+    print "OWL", get_objective_function(owl_weights, means, covars)
     sap_weights = np.zeros_like(intensities[0])
     sap_weights[kplr_mask == 3] = 1.
     foo = np.zeros_like(intensities[0])
@@ -207,24 +207,24 @@ if __name__ == "__main__":
     foo[kplr_mask > 0] = np.diag(covars)
     print "diag(covars):", foo
     foo = np.zeros_like(intensities[0])
-    foo[kplr_mask > 0] = hlm_weights
-    hlm_weight_img = foo
-    hlm_weight_img *= np.sum(sap_weight_img * mean_img) / np.sum(hlm_weight_img * mean_img) # insanity
-    print "HLM weights:", foo
-    print "frac pixel contribs:", mean_img * hlm_weight_img / np.sum(mean_img * hlm_weight_img)
+    foo[kplr_mask > 0] = owl_weights
+    owl_weight_img = foo
+    owl_weight_img *= np.sum(sap_weight_img * mean_img) / np.sum(owl_weight_img * mean_img) # insanity
+    print "OWL weights:", foo
+    print "frac pixel contribs:", mean_img * owl_weight_img / np.sum(mean_img * owl_weight_img)
     pixel_mask = get_pixel_mask(intensities, kplr_mask)
     epoch_mask = get_epoch_mask(pixel_mask, kplr_mask)
     fubar_intensities = intensities
     fubar_intensities[pixel_mask == 0] = 0.
     sap_lightcurve = np.sum(np.sum(fubar_intensities * sap_weight_img[None, :, :], axis=2), axis=1)
-    hlm_lightcurve = np.sum(np.sum(fubar_intensities * hlm_weight_img[None, :, :], axis=2), axis=1)
+    owl_lightcurve = np.sum(np.sum(fubar_intensities * owl_weight_img[None, :, :], axis=2), axis=1)
     print "sap_lightcurve", np.min(sap_lightcurve), np.max(sap_lightcurve)
     plt.clf()
     I = epoch_mask > 0
     plt.plot(time_in_kbjd[I], sap_lightcurve[I], "k-", alpha=0.5)
-    plt.plot(time_in_kbjd[I], hlm_lightcurve[I], "k-")
+    plt.plot(time_in_kbjd[I], owl_lightcurve[I], "k-")
     plt.xlabel("time-ish")
     plt.ylabel("flux")
-    plt.ylim(np.array([0.9, 1.1]) * np.median(hlm_lightcurve))
-    plt.savefig("hlm.png")
+    plt.ylim(np.array([0.9, 1.1]) * np.median(owl_lightcurve))
+    plt.savefig("owl.png")
 
