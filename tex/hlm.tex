@@ -309,34 +309,67 @@ It can't optimize the signal-to-noise at epoch $n$;
   it must optimize the mean or typical signal-to-noise across epochs.
 That is, we want to find the weight vector $w$ that optimizes
 \begin{eqnarray}
-\Sigma^2 &=& \frac{[\transpose{w}\, \mu]^2}{\transpose{w}\, C\, w}
-\quad ,
+  \Sigma^2 &=& \frac{[\transpose{w}\, \mu]^2}{\transpose{w}\, C\, w}
+  \quad ,
 \end{eqnarray}
 where now $\mu$ is the expectation value of the data vectors $y_n$ but now over \emph{all} epochs,
   and $C$ is the covariance matrix for the data but again over \emph{all} epochs.
-The signal-to-noise-optimal weight vector is simply
+The signal-to-noise-optimized weight vector is simply
 \begin{eqnarray}
-w &\leftarrow& \inverse{C}\, \mu
-\quad ,
+  w &\leftarrow& \inverse{C}\, \mu
+  \quad ,
 \end{eqnarray}
   where the inverse operation is the full matrix inverse.
-This optimal-weight result is the natural generalization to correlated noise
+This optimized-weight result is the natural generalization to correlated noise
   of the equivalent result (for independent pixel noise)
   obtained previously (\citealt{naylor}).
 
-Since, by assumption, we don't know the point-spread function,
+Previous work has called these weights ``optimal'' but they are only really ``optimized''.
+For one, the word ``optimal'' always begs the question ``with respect to what?''
+For another, we reserve the word ``optimal'' for estimators
+  that have some glimmer of hope of saturating the Cram\'er--Rao bound (CITE).
+The optimized estimators presented here will not do this in general
+  (and nor will those of \citealt{naylor}),
+  because they are not based on any reasonable likelihood function.
+
+By assumption, we don't know the point-spread function,
   nor the noise model,
-  nor the pointing or PSF jitter,
-  we can't compute $\mu$ and $C$ from first principles; we have to estimate them.
+  nor the pointing or PSF jitter.
+Therefore, we can't compute $\mu$ and $C$ from first principles; we have to estimate them.
 Fortunately, we have $N$ epochs of data;
   we can compute a (suitably robustly estimated)
   \emph{empirical} mean and \emph{empirical} covariance
   of the original data vectors $y_n$.
-It turns out this works well, at least for \project{Kepler} data.
+That is, we will do something like
+\begin{eqnarray}
+  \hat{\mu} &\leftarrow& \frac{1}{N}\,\sum_{n=1}^N y_n
+  \\
+  \hat{C} &\leftarrow& \frac{1}{N-1}\,\sum_{n=1}^N [y_n - \mu]\,\transpose{[y_n - \mu]}
+  \\
+  \hat{w} &\leftarrow& \inverse{\hat{C}}\, \hat{\mu}
+  \quad ,
+\end{eqnarray}
+  where the operations are averages over the epochs,
+  the vector product is the outer or tensor product,
+  and technically we require $N \gg D$ (far more epochs than pixels).
+It turns out that with small modifications
+  (to make the means robust to outliers)
+  this works well, at least for \project{Kepler} data.
 
 \section{\project{Kepler} data}
 
-We 
+\figurename~\ref{fig:pixels} shows time histories for 19 pixels in\ldots HOGG
+
+We compute robust statistics thusly\ldots HOGG
+
+\figurename~\ref{fig:images} shows the empirical mean image $\hat{\mu}$,
+  the diagonal elements of the empirical covariance matrix $\hat{C}$,
+  the top two eigenvectors of the covariance matrix,
+  and the optimized weights\ldots HOGG
+
+\figurename~\ref{fig:results} shows the \project{Kepler} SAP flux,
+  and some standard heurisitic detrendings thereof.
+It also shows the the optimized-weight linear (OWL) photometry\ldots HOGG
 
 \section{Comparison stars}
 
@@ -392,5 +425,33 @@ Naylor, T.\ 1998,
 An optimal extraction algorithm for imaging photometry,
 \mnras, 296, 339
 \end{thebibliography}
+
+\clearpage
+
+\begin{figure}
+~
+\caption{
+The ``lightcurves'' (flux \foreign{vs} time) for 19 pixels near...HOGG
+\label{fig:pixels}}
+\end{figure}
+
+\begin{figure}
+~
+\caption{
+The empirical mean image $\hat{\mu}$,
+  the diagonal elements of the empirical covariance matrix $\hat{C}$,
+  the top two eigenvectors of the covariance matrix,
+  and the optimized weights\ldots HOGG
+\label{fig:images}}
+\end{figure}
+
+\begin{figure}
+~
+\caption{
+The \project{Kepler} SAP flux,
+  some standard heurisitic detrendings thereof,
+  and the optimized-weight linear (OWL) photometry\ldots HOGG
+\label{fig:results}}
+\end{figure}
 
 \end{document}
