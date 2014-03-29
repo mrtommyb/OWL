@@ -99,7 +99,7 @@ def get_means_and_covariances(intensities, kplr_mask, clip_mask=None):
 
     bugs:
     * Only deals with unit and zero weights, nothing else.
-    * Uses for loops!
+    * Uses `for` loops!
     * Needs more information in this comment header.
     """
     pixel_mask = get_pixel_mask(intensities, kplr_mask)
