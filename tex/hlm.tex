@@ -28,8 +28,8 @@
 }
 
 \begin{abstract}
-Precise stellar photometry campaigns by \project{Kepler}, \project{Spitzer}, and \project{PanSTARRS},
-  among many others,
+Precise stellar photometry campaigns by \project{Kepler}, \project{Spitzer}, and \project{PanSTARRS}
+  (among many others)
   create precise lightcurves by fixing the star in detector coordinates,
   and estimating brightness with a fixed linear combination of background-subtracted pixel values.
 Under any complete set of assumptions about the noise in the detector,
@@ -43,10 +43,13 @@ Here we generalize previous results on optimal photometric estimators
 Amusingly, the approach we advocate does not require any advance knowledge of any noise source;
   once there are enough epochs observed,
   the pixel-level data are sufficient to build an empirical data-driven correlated noise model.
+The optimal pixel weights can be found analytically;
+  when they are used to perform photometry, they work extremely well.
 We demonstrate enormous improvements to the \project{Kepler} photometry of isolated stars.
-The best soft apertures produce photometric measurements so uniform that
+The optimal weights produce photometric measurements so uniform that
   they outperform or obviate much more heuristic (and much more scientifically damaging)
-  ``detrending'' sschemes in many real cases.
+  ``detrending'' schemes in many real cases.
+All the code used in this project is available under an open-source license.
 \end{abstract}
 
 \keywords{
