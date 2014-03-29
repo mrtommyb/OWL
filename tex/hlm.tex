@@ -38,15 +38,15 @@ Under any complete set of assumptions about the noise in the detector,
 When precision requirements are extremely high,
   the noise model must necessarily include pointing and point-spread-function variations,
   which introduce highly correlated noise at the pixel level.
-Here we generalize previous results on optimal photometric estimators
+Here we generalize previous results on optimized photometric estimators
   to include arbitrarily correlated pixels.
 Amusingly, the approach we advocate does not require any advance knowledge of any noise source;
   once there are enough epochs observed,
   the pixel-level data are sufficient to build an empirical data-driven correlated noise model.
-The optimal pixel weights can be found analytically;
+The optimized pixel weights can be found analytically;
   when they are used to perform photometry, they work extremely well.
 We demonstrate enormous improvements to the \project{Kepler} photometry of isolated stars.
-The optimal weights produce photometric measurements so uniform that
+The new weights produce photometric measurements so uniform that
   they outperform or obviate much more heuristic (and much more scientifically damaging)
   ``detrending'' schemes in many real cases.
 All the code used in this project is available under an open-source license.
@@ -244,7 +244,7 @@ We do not endorse the view that images should be presented as flux maps!
 We are just sayin' that \emph{if} you need to obey \emph{The Rules},
   then you need to convert your intensity maps into flux maps before playing the game.
 
-\section{Emprirically optimal photometry}
+\section{Optimized photometry}
 
 We have at each of $N$ epochs $n$ a set of $D$ pixels in a small patch
   that contains a star.
@@ -336,6 +336,8 @@ It turns out this works well, at least for \project{Kepler} data.
 
 \section{\project{Kepler} data}
 
+We 
+
 \section{Comparison stars}
 
 \section{Discussion}
@@ -350,7 +352,24 @@ Intrapixel sensitivity variations;
 
 What happens if you don't have good background subtraction or a DC level?
 
-What happens if you have crowding or blending of stars?
+The biggest (in our view) limitation of this method is that it cannot be used
+  to accurately measure the properties of stars
+  that are close enough that their point-spread functions overlap,
+  or stars in crowded fields.
+The issue is that the optimization procedure has no knowledge or understanding
+  of the PSF or even of the fact that it is a star being observed.
+In our view, the only justifiable solution to this problem is forward modeling,
+  in which there are parameterized beliefs about the PSF and the scene,
+  and in which the output photometry comes from analysis of a likelihood function.
+The only conceivable generalization of optimized linear photometry that might be relevant
+  would involve taking the optimum subject to the constraint that the weights must be
+  orthogonal to some estimate of the overlapping star point-spread functions.
+That is an interesting idea,
+  but probably no easier or more reliable than full forward modeling.
+Although we consider this non-isolated problem to be the most severe limitation of what we are doing,
+  we note that the tremendous results of the \project{Kepler} mission
+  have almost all been generated with straight-up aperture photometry.
+There certainly is a great deal that can be done in the isolated-star limit.
 
 \acknowledgments
 It is a pleasure to thank
