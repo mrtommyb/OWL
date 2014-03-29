@@ -9,6 +9,7 @@
 \newcommand{\foreign}[1]{\textsl{#1}}
 \newcommand{\etal}{\foreign{et\,al.}}
 \newcommand{\transpose}[1]{{#1}^{\!\mathsf T}}
+\newcommand{\inverse}[1]{{#1}^{\!-1}}
 \newcommand{\E}[1]{\mathrm{E}[{#1}]}
 \newcommand{\Var}[1]{\mathrm{Var}[{#1}]}
 \newcommand{\Covar}[1]{\mathrm{Covar}[{#1}]}
@@ -42,19 +43,26 @@ Here we generalize previous results on optimal photometric estimators
 Amusingly, the approach we advocate does not require any advance knowledge of any noise source;
   once there are enough epochs observed,
   the pixel-level data are sufficient to build an empirical data-driven correlated noise model.
-We demonstrate enormous improvement to the \project{Kepler}
+We demonstrate enormous improvement to the \project{Kepler} HOGG!
 \end{abstract}
 
 \keywords{
-  foo
+  instrumentation: photometers
   ---
-  bar
+  methods: data analysis
+  ---
+  methods: statistical
+  ---
+  techniques: photometric
 }
 
 \section{Rules of the photometry game}
 
 Precise photometry is the bread-and-butter of the exoplanet community.
-It is also crucial for [other things].
+The unprecedented precision of the \project{Kepler} photometry has led to the discovery of
+dozens of Earth-radius planets (HOGG CITES).
+Precise photometry is, no doubt, going to be of great importance in many other areas,
+  but we don't care that much about any of them (besides exoplanets) at present.
 
 Imagine you are trying to do very sensitive relative photometry on a variable source.
 The most precise methodologies at present involve fixing the position of the source on the detector
@@ -240,7 +248,7 @@ The set of measured, properly calibrated (see above),
 According to \emph{The Rules}, all we are permitted to do at epoch $n$
   is produce a weighted sum
 \begin{eqnarray}
-q_n &\rightarrow& \transpose{w}\, y_n
+q_n &\leftarrow& \transpose{w}\, y_n
 \quad ,
 \end{eqnarray}
   where $q_n$ is a scalar photometric measurement,
@@ -273,9 +281,9 @@ In the simple case of independent noise from pixel-to-pixel,
   $\Covar{y_n}$ becomes diagonal,
   and the variance $\Var{q_n}$ becomes simply the sum of the diagonal variances,
   weighted by the squared weights.
-The expected squared signal-to-noise ratio for $q_n$ is
+The expected squared signal-to-noise ratio $\Sigma^2$ for $q_n$ is
 \begin{eqnarray}
-\left[\frac{s}{n}\right]^2 &=& \frac{[\transpose{w}\, \E{y_n}]^2}{\transpose{w}\, \Covar{y_n}\, w}
+\Sigma^2 &=& \frac{[\transpose{w}\, \mu_n]^2}{\transpose{w}\, C_n\, w}
 \quad .
 \end{eqnarray}
 
@@ -289,6 +297,37 @@ Variations of the pointing and point-spread function (and background),
   correlate the pixels.
 That is, they produce a kind of noise that is neither photon nor read noise in the detector.
 They produce a jitter noise that leads to covariant variations of the individual pixel values.
+
+We win the game if we find the weight vector $w$ that optimizes signal-to-noise.
+It can't optimize the signal-to-noise at epoch $n$;
+  it must optimize the mean or typical signal-to-noise across epochs.
+That is, we want to find the weight vector $w$ that optimizes
+\begin{eqnarray}
+\Sigma^2 &=& \frac{[\transpose{w}\, \mu]^2}{\transpose{w}\, C\, w}
+\quad ,
+\end{eqnarray}
+where now $\mu$ is the expectation value of the data vectors $y_n$ but now over \emph{all} epochs,
+  and $C$ is the covariance matrix for the data but again over \emph{all} epochs.
+The signal-to-noise-optimal weight vector is simply
+\begin{eqnarray}
+w &\leftarrow& \inverse{C}\, \mu
+\quad ,
+\end{eqnarray}
+  which is the natural generalization to correlated noise
+  of the result (for independent pixel noise)
+  obtained previously (\citealt{naylor}).
+
+Since, by assumption, we don't know the point-spread function,
+  nor the noise model,
+  nor the pointing or PSF jitter,
+  we can't compute $\mu$ and $C$ from first principles; we have to estimate them.
+Fortunately, we have $N$ epochs of data;
+  we can compute a (suitably robustly estimated)
+  \emph{empirical} mean and \emph{empirical} covariance
+  of the original data vectors $y_n$.
+It turns out this works well, at least for \project{Kepler} data.
+
+\section{\project{Kepler} data}
 
 \section{Comparison stars}
 
