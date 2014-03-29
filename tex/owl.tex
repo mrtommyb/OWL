@@ -14,6 +14,7 @@
 \newcommand{\E}[1]{\mathrm{E}[{#1}]}
 \newcommand{\Var}[1]{\mathrm{Var}[{#1}]}
 \newcommand{\Covar}[1]{\mathrm{Covar}[{#1}]}
+\include{vc}
 
 \begin{document}
 
@@ -68,8 +69,8 @@ All the OWL code is available under an open-source license.
 Precise photometry is the bread-and-butter of the exoplanet community.
 The unprecedented precision of the \project{Kepler} photometry has led to the discovery of
 dozens of Earth-radius planets (HOGG CITES).
-Precise photometry is, no doubt, going to be of great importance in many other areas,
-  but we don't care that much about any of them (besides exoplanets) at present.
+\project{Kepler}-level (part in $10^5$) precise photometry is, no doubt,
+  going to be of great importance in many other areas as well.
 
 Imagine you are trying to do very sensitive relative photometry on a variable source.
 The most precise methodologies at present involve fixing the position of the source on the detector
@@ -405,10 +406,12 @@ Although we consider this non-isolated problem to be the most severe limitation 
   have almost all been generated with straight-up aperture photometry.
 There certainly is a great deal that can be done in the isolated-star limit.
 
-All of the code used in this project is available from \url{http://github.com/davidwhogg/OWL}
-  (or other internet forks) under the MIT open-source software license.
+All of the code used in this project is available
+  from \url{http://github.com/davidwhogg/OWL} (or forks thereof)
+  under the MIT open-source software license.
 This code (plus some dependencies) can be run
-  to re-generate all of the figures and results in this \documentname.
+  to re-generate all of the figures and results in this \documentname;
+  this version of the paper was generated with git hash \githash\ (\gitdate).
 
 \acknowledgments
 It is a pleasure to thank
