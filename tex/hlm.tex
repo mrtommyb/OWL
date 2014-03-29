@@ -8,6 +8,10 @@
 \newcommand{\project}[1]{\textsl{#1}}
 \newcommand{\foreign}[1]{\textsl{#1}}
 \newcommand{\etal}{\foreign{et\,al.}}
+\newcommand{\transpose}[1]{{#1}^{\!\mathsf T}}
+\newcommand{\E}[1]{\mathrm{E}[{#1}]}
+\newcommand{\Var}[1]{\mathrm{Var}[{#1}]}
+\newcommand{\Covar}[1]{\mathrm{Covar}[{#1}]}
 
 \begin{document}
 
@@ -225,6 +229,66 @@ The standard data products of the \project{Hubble Space Telescope}
 We do not endorse the view that images should be presented as flux maps!
 We are just sayin' that \emph{if} you need to obey \emph{The Rules},
   then you need to convert your intensity maps into flux maps before playing the game.
+
+\section{Emprirically optimal photometry}
+
+We have at each of $N$ epochs $n$ a set of $D$ pixels in a small patch
+  that contains a star.
+The set of measured, properly calibrated (see above),
+  correctly background-subtracted (see above)
+  pixel values at epoch $n$ form a $D$-dimensional column vector $y_n$.
+According to \emph{The Rules}, all we are permitted to do at epoch $n$
+  is produce a weighted sum
+\begin{eqnarray}
+q_n &\rightarrow& \transpose{w}\, y_n
+\quad ,
+\end{eqnarray}
+  where $q_n$ is a scalar photometric measurement,
+  $w$ is a $D$-dimensional column vector of weights,
+  and (because of the transpose)
+  the product is effectively an inner (scalar or dot) product.
+\emph{The Rules} state that the weight vector $w$ must not depend on $n$ or anything else;
+  the weights are the same at every epoch.
+
+We can see $q_n$ as an estimator---a point estimate---of the stellar brightness.
+If we knew the expectation value (mean) for the pixel data $y_n$ and also the
+  variance of those data around the mean,
+  we could predict the expectation and variance of the estimator.
+The expectation value would be:
+\begin{eqnarray}
+\E{q_n} &=& \transpose{w}\, \mu_n
+\\
+\mu_n &\equiv& \E{y_n}
+\\
+\Var{q_n} &=& \transpose{w}\, C_n\, w
+\\
+C_n &\equiv& \Covar{y_n}
+\quad ,
+\end{eqnarray}
+  where $\E{x}$ is the expectation value of $x$,
+  $\Var{x}$ is the variance of (a scalar) $x$ around its expectation value,
+  and $\Covar{x}$ is the $D\times D$ symmetric, positive definite covariance matrix
+  of (a vector) $x$ around its expectation value.
+In the simple case of independent noise from pixel-to-pixel,
+  $\Covar{y_n}$ becomes diagonal,
+  and the variance $\Var{q_n}$ becomes simply the sum of the diagonal variances,
+  weighted by the squared weights.
+The expected squared signal-to-noise ratio for $q_n$ is
+\begin{eqnarray}
+\left[\frac{s}{n}\right]^2 &=& \frac{[\transpose{w}\, \E{y_n}]^2}{\transpose{w}\, \Covar{y_n}\, w}
+\quad .
+\end{eqnarray}
+
+BAD SYMBOL ABOVE; $n$ OVERLOADED
+
+It is almost always assumed that the pixel-to-pixel noise is independent (diagonal);
+  why do we not assume this here?
+The answer lies in \emph{The Rules}:
+Variations of the pointing and point-spread function (and background),
+  which are all unknown,
+  correlate the pixels.
+That is, they produce a kind of noise that is neither photon nor read noise in the detector.
+They produce a jitter noise that leads to covariant variations of the individual pixel values.
 
 \section{Comparison stars}
 
