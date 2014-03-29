@@ -42,7 +42,8 @@ When precision requirements are extremely high,
   which introduce highly correlated noise at the pixel level.
 Here we generalize previous results on optimized photometric estimators
   to include arbitrarily correlated pixels.
-Amusingly, the approach we advocate does not require any advance knowledge of any noise source;
+Amusingly, the approach we advocate does not in the end
+  require any advance knowledge of any noise source;
   once there are enough epochs observed,
   the pixel-level data are sufficient to build an empirical data-driven correlated noise model.
 The optimized pixel weights can be found analytically;
@@ -354,7 +355,7 @@ That is, we will do something like
   and technically we require $N \gg D$ (far more epochs than pixels).
 It turns out that with small modifications
   (to make the means robust to outliers)
-  this works well, at least for \project{Kepler} data.
+  this works well, at least for \project{Kepler} data (see below).
 The Optimized-Weight Linear (OWL) photometry $q_n$ is then
 \begin{eqnarray}
   q_n &\leftarrow& \transpose{\hat{w}}\, y_n
@@ -380,6 +381,8 @@ We compute robust statistics thusly\ldots HOGG
   the diagonal elements of the empirical covariance matrix $\hat{C}$,
   the top two eigenvectors of the covariance matrix,
   and the optimized weights\ldots HOGG
+
+PERHAPS HERE PUT IN SOME INTUITION ABOUT WHAT MAKES WEIGHTS GO NEGATIVE?
 
 \figurename~\ref{fig:results} shows the \project{Kepler} SAP flux,
   and some standard heurisitic detrendings thereof.
