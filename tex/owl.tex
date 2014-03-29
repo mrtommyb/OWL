@@ -344,7 +344,7 @@ That is, we will do something like
 \begin{eqnarray}
   \hat{\mu} &\leftarrow& \frac{1}{N}\,\sum_{n=1}^N y_n
   \\
-  \hat{C} &\leftarrow& \frac{1}{N-1}\,\sum_{n=1}^N [y_n - \mu]\,\transpose{[y_n - \mu]}
+  \hat{C} &\leftarrow& \frac{1}{N-1}\,\sum_{n=1}^N [y_n - \hat{\mu}]\,\transpose{[y_n - \hat{\mu}]}
   \\
   \hat{w} &\leftarrow& \inverse{\hat{C}}\, \hat{\mu}
   \quad ,
@@ -355,8 +355,20 @@ That is, we will do something like
 It turns out that with small modifications
   (to make the means robust to outliers)
   this works well, at least for \project{Kepler} data.
+The Optimized-Weight Linear (OWL) photometry $q_n$ is then
+\begin{eqnarray}
+  q_n &\leftarrow& \transpose{\hat{w}}\, y_n
+  \quad ,
+\end{eqnarray}
+  that is, one scalar $q_n$ per epoch $n$, obtained by a weighted sum of the $y_n$.
+We have not just obeyed \emph{The Rules},
+  we have come up with the best possible strategy in terms of empirical signal-to-noise.
 
-NEED TO INTRODUCE NAME OWL HERE, NOT BELOW.
+There is one overall scale that is free;
+  any scalar multiple of the weight vector $\hat{w}$ is identical in signal-to-noise
+  to any other scalar multiple.
+In practice it doesn't matter how we choose this unless either machine precision is an issue,
+  or else some kind of absolute aspects of photometry are required.
 
 \section{\project{Kepler} data}
 
@@ -371,7 +383,7 @@ We compute robust statistics thusly\ldots HOGG
 
 \figurename~\ref{fig:results} shows the \project{Kepler} SAP flux,
   and some standard heurisitic detrendings thereof.
-It also shows the the optimized-weight linear (OWL) photometry \ldots HOGG
+It also shows the the OWL photometry \ldots HOGG
 
 \section{Comparison stars}
 
