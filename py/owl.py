@@ -154,6 +154,9 @@ def get_sigma_clip_mask(intensities, means, covars, kplr_mask, nsigma=4.0):
     mask[chi_squareds < ndof + nsigma * np.sqrt(2. * ndof)] = 1.
     return mask
 
+def get_owl_weights(means, covars):
+    return np.linalg.solve(covars, means)
+
 if __name__ == "__main__":
     Fake = False
     if Fake:
@@ -172,59 +175,105 @@ if __name__ == "__main__":
         time_in_kbjd = table["TIME"]
         raw_cnts = table["RAW_CNTS"]
         intensities = table["FLUX"]
+    nt, ny, nx = intensities.shape
     means, covars = get_means_and_covariances(intensities, kplr_mask)
     for i in range(5):
         clip_mask = get_sigma_clip_mask(intensities, means, covars, kplr_mask)
         means, covars = get_means_and_covariances(intensities, kplr_mask, clip_mask)
+
+    # get two eigenvectors (for later plotting)
     eig = np.linalg.eig(covars)
     eigval = eig[0]
     eigvec = eig[1]
     II = (np.argsort(eigval))[::-1]
-    print II
-    print eigval[II]
-    foo = np.zeros_like(intensities[0])
-    foo[kplr_mask > 0] = eigvec[II[0]]
-    print foo
+    eigvec0 = eigvec[II[0]]
+    eigvec1 = eigvec[II[1]]
+
+    # get OWL and SAP weights
     sap_weights = np.zeros(kplr_mask.shape)
     sap_weights[kplr_mask == 3] = 1
     sap_weights = sap_weights[kplr_mask > 0]
-    start_weights = np.ones(means.shape)
-    owl_weights = np.linalg.solve(covars, means)
-    print "SAP", get_objective_function(sap_weights, means, covars)
-    print "start", get_objective_function(start_weights, means, covars)
-    print "OWL", get_objective_function(owl_weights, means, covars)
-    sap_weights = np.zeros_like(intensities[0])
-    sap_weights[kplr_mask == 3] = 1.
-    foo = np.zeros_like(intensities[0])
-    foo[kplr_mask == 3] = 1.
-    sap_weight_img = foo
-    print "SAP weights:", sap_weights
-    foo = np.zeros_like(intensities[0])
-    foo[kplr_mask > 0] = means
-    mean_img = foo
-    print "means:", foo
-    foo = np.zeros_like(intensities[0])
-    foo[kplr_mask > 0] = np.diag(covars)
-    print "diag(covars):", foo
-    foo = np.zeros_like(intensities[0])
-    foo[kplr_mask > 0] = owl_weights
-    owl_weight_img = foo
-    owl_weight_img *= np.sum(sap_weight_img * mean_img) / np.sum(owl_weight_img * mean_img) # insanity
-    print "OWL weights:", foo
-    print "frac pixel contribs:", mean_img * owl_weight_img / np.sum(mean_img * owl_weight_img)
+    owl_weights = get_owl_weights(means, covars)
+    owl_weights *= np.sum(sap_weights * means) / np.sum(owl_weights * means)
+
+    # reformat back to image space
+    def reformat_as_image(bar):
+        foo = np.zeros_like(intensities[0])
+        foo[kplr_mask > 0] = bar
+        return foo
+    mean_img = reformat_as_image(means)
+    covar_diag_img = reformat_as_image(np.diag(covars))
+    eigvec0_img = reformat_as_image(eigvec0)
+    eigvec1_img = reformat_as_image(eigvec1)
+    owl_weight_img = reformat_as_image(owl_weights)
+    owl_frac_contribs_img = owl_weight_img * mean_img
+    sap_weight_img = reformat_as_image(sap_weights)
+    sap_frac_contribs_img = sap_weight_img * mean_img
+
+    # get photometry
     pixel_mask = get_pixel_mask(intensities, kplr_mask)
     epoch_mask = get_epoch_mask(pixel_mask, kplr_mask)
     fubar_intensities = intensities
     fubar_intensities[pixel_mask == 0] = 0.
     sap_lightcurve = np.sum(np.sum(fubar_intensities * sap_weight_img[None, :, :], axis=2), axis=1)
     owl_lightcurve = np.sum(np.sum(fubar_intensities * owl_weight_img[None, :, :], axis=2), axis=1)
-    print "sap_lightcurve", np.min(sap_lightcurve), np.max(sap_lightcurve)
+    print "SAP", np.min(sap_lightcurve), np.max(sap_lightcurve)
+    print "OWL", np.min(owl_lightcurve), np.max(owl_lightcurve)
+
+    # make pixels plot
+    plt.figure(figsize=(3 * nx, 3 * ny))
+    plt.clf()
+    plt.savefig("%s_pixels.png" % prefix)
+
+    # make images plot
+    plt.gray()
+    plt.figure(figsize=(3 * nx, 3 * ny))
+    plt.clf()
+    vmax = np.percentile(intensities[:, kplr_mask > 0], 99.)
+    vmin = -0.1 * vmax
+    for ii, sp in [(0, 331), (nt / 2, 332), (nt-1, 333)]:
+        plt.subplot(sp)
+        plt.imshow(intensities[ii], interpolation="nearest", origin="lower", vmin=vmin, vmax=vmax)
+        plt.title("exposure %d" % ii)
+        plt.colorbar()
+    plt.subplot(334)
+    plt.imshow(mean_img, interpolation="nearest", origin="lower", vmin=vmin, vmax=vmax)
+    plt.title(r"mean $\hat{\mu}$")
+    plt.colorbar()
+    plt.subplot(335)
+    plt.imshow(np.log10(covar_diag_img), interpolation="nearest", origin="lower")
+    plt.title(r"log diag($\hat{C}$")
+    plt.colorbar()
+    plt.subplot(336)
+    plt.imshow(eigvec0_img, interpolation="nearest", origin="lower")
+    plt.title(r"dominant $\hat{C}$ eigenvector")
+    plt.colorbar()
+    vmin = -0.12
+    vmax = 1.2
+    plt.subplot(337)
+    plt.imshow(1. * sap_weight_img, interpolation="nearest", origin="lower", vmin=vmin, vmax=vmax)
+    plt.title(r"SAP weights")
+    plt.colorbar()
+    plt.subplot(338)
+    plt.imshow(owl_weight_img, interpolation="nearest", origin="lower", vmin=vmin, vmax=vmax)
+    plt.title(r"OWL weights")
+    plt.colorbar()
+    plt.subplot(339)
+    plt.imshow(owl_weight_img * mean_img, interpolation="nearest", origin="lower")
+    plt.title(r"OWL mean contribs")
+    plt.colorbar()
+    plt.savefig("%s_images.png" % prefix)
+
+    # make photometry plot
+    plt.figure(figsize=(12, 6))
     plt.clf()
     I = epoch_mask > 0
     plt.plot(time_in_kbjd[I], sap_lightcurve[I], "k-", alpha=0.5)
+    plt.text(time_in_kbjd[-1], sap_lightcurve[-1], "SAP", alpha=0.5)
     plt.plot(time_in_kbjd[I], owl_lightcurve[I], "k-")
-    plt.xlabel("time-ish")
-    plt.ylabel("flux")
-    plt.ylim(np.array([0.9, 1.1]) * np.median(owl_lightcurve))
-    plt.savefig("owl.png")
-
+    plt.text(time_in_kbjd[-1], owl_lightcurve[-1], "OWL")
+    plt.xlim(np.min(time_in_kbjd[I]), np.max(time_in_kbjd[I]) + 4.)
+    plt.ylim(0.99 * np.min(sap_lightcurve[I]), 1.01 * np.max(sap_lightcurve[I]))
+    plt.xlabel("time (KBJD in days)")
+    plt.ylabel("flux (in Kepler SAP ADU)")
+    plt.savefig("%s_photometry.png" % prefix)
