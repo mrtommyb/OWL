@@ -9,7 +9,7 @@
 \newcommand{\foreign}[1]{\textsl{#1}}
 \newcommand{\etal}{\foreign{et\,al.}}
 \newcommand{\transpose}[1]{{#1}^{\!\mathsf T}}
-\newcommand{\inverse}[1]{{#1}^{\!-1}}
+\newcommand{\inverse}[1]{{#1}^{-1}}
 \newcommand{\E}[1]{\mathrm{E}[{#1}]}
 \newcommand{\Var}[1]{\mathrm{Var}[{#1}]}
 \newcommand{\Covar}[1]{\mathrm{Covar}[{#1}]}
@@ -43,7 +43,10 @@ Here we generalize previous results on optimal photometric estimators
 Amusingly, the approach we advocate does not require any advance knowledge of any noise source;
   once there are enough epochs observed,
   the pixel-level data are sufficient to build an empirical data-driven correlated noise model.
-We demonstrate enormous improvement to the \project{Kepler} HOGG!
+We demonstrate enormous improvements to the \project{Kepler} photometry of isolated stars.
+The best soft apertures produce photometric measurements so uniform that
+  they outperform or obviate much more heuristic (and much more scientifically damaging)
+  ``detrending'' sschemes in many real cases.
 \end{abstract}
 
 \keywords{
@@ -313,8 +316,9 @@ The signal-to-noise-optimal weight vector is simply
 w &\leftarrow& \inverse{C}\, \mu
 \quad ,
 \end{eqnarray}
-  which is the natural generalization to correlated noise
-  of the result (for independent pixel noise)
+  where the inverse operation is the full matrix inverse.
+This optimal-weight result is the natural generalization to correlated noise
+  of the equivalent result (for independent pixel noise)
   obtained previously (\citealt{naylor}).
 
 Since, by assumption, we don't know the point-spread function,
