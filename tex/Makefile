@@ -1,4 +1,4 @@
-all: hlm.pdf
+all: owl.pdf
 
 %.pdf: %.tex
 	pdflatex $<

@@ -5,6 +5,7 @@
 \hypersetup{colorlinks=true,linkcolor=linkcolor,citecolor=linkcolor,
             filecolor=linkcolor,urlcolor=linkcolor}
 
+\newcommand{\documentname}{\textsl{Article}}
 \newcommand{\project}[1]{\textsl{#1}}
 \newcommand{\foreign}[1]{\textsl{#1}}
 \newcommand{\etal}{\foreign{et\,al.}}
@@ -46,10 +47,10 @@ Amusingly, the approach we advocate does not require any advance knowledge of an
 The optimized pixel weights can be found analytically;
   when they are used to perform photometry, they work extremely well.
 We demonstrate enormous improvements to the \project{Kepler} photometry of isolated stars.
-The new weights produce photometric measurements so uniform that
+The Optimized-Weight Linear (OWL) Photometry produces photometric measurements so uniform that
   they outperform or obviate much more heuristic (and much more scientifically damaging)
   ``detrending'' schemes in many real cases.
-All the code used in this project is available under an open-source license.
+All the OWL code is available under an open-source license.
 \end{abstract}
 
 \keywords{
@@ -293,8 +294,6 @@ The expected squared signal-to-noise ratio $\Sigma^2$ for $q_n$ is
 \quad .
 \end{eqnarray}
 
-BAD SYMBOL ABOVE; $n$ OVERLOADED
-
 It is almost always assumed that the pixel-to-pixel noise is independent (diagonal);
   why do we not assume this here?
 The answer lies in \emph{The Rules}:
@@ -338,7 +337,7 @@ By assumption, we don't know the point-spread function,
 Therefore, we can't compute $\mu$ and $C$ from first principles; we have to estimate them.
 Fortunately, we have $N$ epochs of data;
   we can compute a (suitably robustly estimated)
-  \emph{empirical} mean and \emph{empirical} covariance
+  \emph{empirical} mean $\hat{\mu}$ and \emph{empirical} covariance $\hat{C}$
   of the original data vectors $y_n$.
 That is, we will do something like
 \begin{eqnarray}
@@ -356,6 +355,8 @@ It turns out that with small modifications
   (to make the means robust to outliers)
   this works well, at least for \project{Kepler} data.
 
+NEED TO INTRODUCE NAME OWL HERE, NOT BELOW.
+
 \section{\project{Kepler} data}
 
 \figurename~\ref{fig:pixels} shows time histories for 19 pixels in\ldots HOGG
@@ -369,7 +370,7 @@ We compute robust statistics thusly\ldots HOGG
 
 \figurename~\ref{fig:results} shows the \project{Kepler} SAP flux,
   and some standard heurisitic detrendings thereof.
-It also shows the the optimized-weight linear (OWL) photometry\ldots HOGG
+It also shows the the optimized-weight linear (OWL) photometry \ldots HOGG
 
 \section{Comparison stars}
 
@@ -403,6 +404,11 @@ Although we consider this non-isolated problem to be the most severe limitation 
   we note that the tremendous results of the \project{Kepler} mission
   have almost all been generated with straight-up aperture photometry.
 There certainly is a great deal that can be done in the isolated-star limit.
+
+All of the code used in this project is available from \url{http://github.com/davidwhogg/OWL}
+  (or other internet forks) under the MIT open-source software license.
+This code (plus some dependencies) can be run
+  to re-generate all of the figures and results in this \documentname.
 
 \acknowledgments
 It is a pleasure to thank
