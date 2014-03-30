@@ -1,3 +1,14 @@
+% This file is part of the OWL project.
+% Copyright 2014 the authors.
+
+% ## notes:
+% - Use ``star'' not ``source'' for the target of the OWL.
+
+% ## to-do:
+% - Finish zeroth draft.
+% - Send for comments to Lupton, Carey, Wright, Brandner
+% - Who is in charge of the PanSTARRS variability field?
+
 \documentclass[12pt, letterpaper, preprint]{aastex}
 
 \usepackage{color,hyperref}
@@ -16,7 +27,7 @@
 \newcommand{\Covar}[1]{\mathrm{Covar}[{#1}]}
 \include{vc}
 
-\begin{document}
+\begin{document}\sloppy\sloppypar
 
 \title{
   Optimized ``soft'' aperture photometry for time-domain astronomy
@@ -25,8 +36,7 @@
   David W. Hogg,
   Dan Foreman-Mackey,
   Jonathan Goodman,
-  Fengji Hou,
-  others
+  Fengji Hou
 }
 
 \begin{abstract}
@@ -97,11 +107,13 @@ Here we ask only about this last choice:
 What is the best way to measure the brightness of a nearly constant source,
   given a set of precise images of the source taken over time?
 
+FOR THE ABOVE CHECK TWITTER FOR REFS AND THANK TWEEPS.
+
 We are going to answer this question using optimization, of course;
   we are going to find the ``best'' method.
 We will assume that the investigator obeyed the usual rules,
   so he or she fixed the position of the star on the detector,
-  defocused the telescope,
+  possibly defocused the telescope,
   and avoided saturation.
 However, we are also going to assume---%
   as is \emph{always the case}---%
@@ -117,8 +129,6 @@ The conditions we have assumed might seem strange,
   but they are generic for the most precise photometry systems currently operating.
 \project{Kepler}, for instance, has all of these problems,
   as does [insert projects here, like Wright's].
-
-% in what follows the object of photometry is a ``star'' not a ``source''.
 
 It is possible to think of this problem as the problem of finding the best strategy in a single-player game.
 \emph{The Rules} of this game are as follows:
@@ -455,7 +465,7 @@ The OWL method depends very strongly on good background subtraction.
 The reason is that it seeks to obtain high expectation value and low variance.
 If there is a constant background that hasn't been subtracted,
   the weights will choose to add in a lot of constant background
-  and possibly down-weight a variable source.
+  and possibly down-weight the pixels being hit by the variable object star.
 The main requirement is that the background has been subtracted such
   that the mean background level in all pixels at all epochs is negligible.
 The background subtraction can be noisy and variable,
