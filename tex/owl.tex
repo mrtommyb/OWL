@@ -5,6 +5,7 @@
 % - Use ``star'' not ``source'' for the target of the OWL.
 
 % ## to-do:
+% - Needs affiliations etc.
 % - Finish zeroth draft.
 % - Send for comments to Lupton, Carey, Wright, Brandner
 % - Who is in charge of the PanSTARRS variability field?
@@ -35,8 +36,7 @@
 \author{
   David W. Hogg,
   Dan Foreman-Mackey,
-  Jonathan Goodman,
-  Fengji Hou
+  Jonathan Goodman
 }
 
 \begin{abstract}
@@ -389,16 +389,35 @@ In practice it doesn't matter how we choose this unless either machine precision
 
 \section{\project{Kepler} data}
 
+NEED SOME INTRODUCTION TO THE STRUCTURE OF THE KEPLER PIXEL DATA and MASK.
+
 \figurename~\ref{fig:pixels} shows time histories for 19 pixels in\ldots HOGG
 
-We compute robust statistics thusly\ldots HOGG
+The \project{Kepler} data are extremely good, but there are some outliers,
+  presumably from cosmic rays.
+We want to compute empirical means and covariances that are not overly drawn by these outliers.
+We compute the empirical statistics with an iterated sigma-clipping.
+In each iteration, we censor (remove from the sum)
+  any datum $y_n$ that is more than a ``4 sigma'' outlier
+  given the empirical mean $\hat{\mu}$ and covariance $\hat{C}$ computed in the previous iteration.
+To determine the 4-sigma criterion, we use the Gaussian approximation to the chi-squared distribution
+  with the appropriate number of degrees of freedom.
+We iterate this sigma-clipping through five iterations,
+  which in practice seems to lead to convergence.
+Importantly, we sigma-clip at the epoch level, not the pixel level.
 
-\figurename~\ref{fig:images} shows the empirical mean image $\hat{\mu}$,
+\figurename~\ref{fig:images} shows the robustly estimated empirical mean image $\hat{\mu}$,
   the diagonal elements of the empirical covariance matrix $\hat{C}$,
-  the top two eigenvectors of the covariance matrix,
-  and the optimized weights\ldots HOGG
-
-PERHAPS HERE PUT IN SOME INTUITION ABOUT HOW THE WEIGHTS GET SET?  WHAT MAKES WEIGHTS GO NEGATIVE?
+  the top eigenvector of the covariance matrix,
+  and the OWL weights, along with the weights used by the \project{Kepler} pipeline,
+  and a few data examples.
+The optimized weight vector might seem counterintuitive;
+  it puts substantial weight off the peak of the mean intensity.
+The fundamental reason is that the weight vector is trying to get as orthogonal as possible
+  to the high-variance eigenvectors of the variance tensor.
+In the end, the highest-weight pixels do not all deliver significant signal;
+  in \figurename~\ref{fig:images} we also show the OWL weights times the empirical mean,
+  which gives a sense of where the bulk of the photometric signal is coming from.
 
 \figurename~\ref{fig:results} shows the \project{Kepler} SAP flux,
   and some standard heurisitic detrendings thereof.
@@ -514,7 +533,8 @@ This code (plus some dependencies) can be run
 
 \acknowledgments
 It is a pleasure to thank
-  Christian Knigge (Southampton) and
+  Fengji Hou (NYU), 
+  Christian Knigge (Southampton), and
   Molei Tao (NYU)
 for valuable comments.
 This work was partially supported by the Moore--Sloan Data Science Environment at NYU,
