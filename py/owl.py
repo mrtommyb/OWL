@@ -145,7 +145,10 @@ def get_chi_squareds(intensities, means, covars, kplr_mask):
 
 def get_sigma_clip_mask(intensities, means, covars, kplr_mask, nsigma=4.0):
     """
+    Sigma-clipper making use of the chi-squared distribution.
+
     bugs:
+    * Not properly audited or tested.
     * Needs more information in this comment header.
     """
     ndof = np.sum(kplr_mask > 0)
@@ -154,17 +157,32 @@ def get_sigma_clip_mask(intensities, means, covars, kplr_mask, nsigma=4.0):
     mask[chi_squareds < ndof + nsigma * np.sqrt(2. * ndof)] = 1.
     return mask
 
+def get_robust_means_and_covariances(intensities, kplr_mask, clip_mask=None):
+    """
+    Iterative sigma-clipping version of `get_means_and_covariances()`.
+
+    bugs:
+    * Magic number 5 hard-coded.
+    * Needs more information in this comment header.
+    """
+    means, covars = get_means_and_covariances(intensities, kplr_mask)
+    for i in range(5): # MAGIC
+        clip_mask = get_sigma_clip_mask(intensities, means, covars, kplr_mask)
+        means, covars = get_means_and_covariances(intensities, kplr_mask, clip_mask)
+    return means, covars
+
 def get_owl_weights(means, covars):
     return np.linalg.solve(covars, means)
 
-if __name__ == "__main__":
-    Fake = False
-    if Fake:
+def photometer_and_plot(kicid, fake=False):
+    if fake:
+        prefix = "fake"
+        title = "fake data"
         intensities, kplr_mask = get_fake_data(4700)
         time_in_kbjd = np.arange(len(intensities))
     else:
-        kicid = 3335426
         prefix = "kic_%08d" % (kicid, )
+        title = "KIC %08d" % (kicid, )
         tpf = get_target_pixel_file(kicid, 5)
         if False:
             fig = tpf.plot()
@@ -173,13 +191,10 @@ if __name__ == "__main__":
             table = hdu[1].data
             kplr_mask = hdu[2].data
         time_in_kbjd = table["TIME"]
-        raw_cnts = table["RAW_CNTS"]
+        # raw_cnts = table["RAW_CNTS"]
         intensities = table["FLUX"]
     nt, ny, nx = intensities.shape
-    means, covars = get_means_and_covariances(intensities, kplr_mask)
-    for i in range(5):
-        clip_mask = get_sigma_clip_mask(intensities, means, covars, kplr_mask)
-        means, covars = get_means_and_covariances(intensities, kplr_mask, clip_mask)
+    means, covars = get_robust_means_and_covariances(intensities, kplr_mask)
 
     # get two eigenvectors (for later plotting)
     eig = np.linalg.eig(covars)
@@ -223,12 +238,14 @@ if __name__ == "__main__":
     # make pixels plot
     plt.figure(figsize=(3 * nx, 3 * ny))
     plt.clf()
+    plt.title(title)
     plt.savefig("%s_pixels.png" % prefix)
 
     # make images plot
     plt.gray()
     plt.figure(figsize=(3 * nx, 3 * ny))
     plt.clf()
+    plt.title(title)
     vmax = np.percentile(intensities[:, kplr_mask > 0], 99.)
     vmin = -0.1 * vmax
     for ii, sp in [(0, 331), (nt / 2, 332), (nt-1, 333)]:
@@ -267,6 +284,7 @@ if __name__ == "__main__":
     # make photometry plot
     plt.figure(figsize=(12, 6))
     plt.clf()
+    plt.title(title)
     I = epoch_mask > 0
     plt.plot(time_in_kbjd[I], sap_lightcurve[I], "k-", alpha=0.5)
     plt.text(time_in_kbjd[-1], sap_lightcurve[-1], "SAP", alpha=0.5)
@@ -277,3 +295,8 @@ if __name__ == "__main__":
     plt.xlabel("time (KBJD in days)")
     plt.ylabel("flux (in Kepler SAP ADU)")
     plt.savefig("%s_photometry.png" % prefix)
+
+if __name__ == "__main__":
+    kicid = 3335426
+    photometer_and_plot(kicid, fake=True)
+    # photometer_and_plot(kicid)
