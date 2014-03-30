@@ -122,8 +122,6 @@ def get_means_and_covariances(intensities, kplr_mask, clip_mask=None):
     means = means[(kplr_mask > 0)]
     covars = covars[(kplr_mask > 0)]
     covars = covars[:, (kplr_mask > 0)]
-    print "get_means_and_covariancess():", means
-    print "get_means_and_covariancess():", np.trace(covars), np.linalg.det(covars), np.sum(epoch_mask)
     return means, covars
 
 def get_objective_function(weights, means, covars):
@@ -174,19 +172,24 @@ def get_robust_means_and_covariances(intensities, kplr_mask, clip_mask=None):
 def get_owl_weights(means, covars):
     return np.linalg.solve(covars, means)
 
+def savefig(fn):
+    print "writing file " + fn
+    plt.savefig(fn)
+
 def photometer_and_plot(kicid, fake=False):
+    fsf = 2.5
     if fake:
         prefix = "fake"
         title = "fake data"
         intensities, kplr_mask = get_fake_data(4700)
-        time_in_kbjd = np.arange(len(intensities))
+        time_in_kbjd = np.arange(len(intensities)) / 24. / 2.
     else:
         prefix = "kic_%08d" % (kicid, )
         title = "KIC %08d" % (kicid, )
         tpf = get_target_pixel_file(kicid, 5)
-        if False:
-            fig = tpf.plot()
-            fig.savefig(prefix + ".png")
+        fig = tpf.plot(figsize=(fsf * nx, fsf * ny))
+        fig.title(title)
+        savefig("%s_pixels.png" % prefix)
         with tpf.open() as hdu:
             table = hdu[1].data
             kplr_mask = hdu[2].data
@@ -235,15 +238,9 @@ def photometer_and_plot(kicid, fake=False):
     print "SAP", np.min(sap_lightcurve), np.max(sap_lightcurve)
     print "OWL", np.min(owl_lightcurve), np.max(owl_lightcurve)
 
-    # make pixels plot
-    plt.figure(figsize=(3 * nx, 3 * ny))
-    plt.clf()
-    plt.title(title)
-    plt.savefig("%s_pixels.png" % prefix)
-
     # make images plot
     plt.gray()
-    plt.figure(figsize=(3 * nx, 3 * ny))
+    plt.figure(figsize=(fsf * nx, fsf * ny)) # MAGIC
     plt.clf()
     plt.title(title)
     vmax = np.percentile(intensities[:, kplr_mask > 0], 99.)
@@ -279,10 +276,10 @@ def photometer_and_plot(kicid, fake=False):
     plt.imshow(owl_weight_img * mean_img, interpolation="nearest", origin="lower")
     plt.title(r"OWL mean contribs")
     plt.colorbar()
-    plt.savefig("%s_images.png" % prefix)
+    savefig("%s_images.png" % prefix)
 
     # make photometry plot
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(fsf * nx, 0.5 * fsf * nx))
     plt.clf()
     plt.title(title)
     I = epoch_mask > 0
@@ -294,7 +291,7 @@ def photometer_and_plot(kicid, fake=False):
     plt.ylim(0.99 * np.min(sap_lightcurve[I]), 1.01 * np.max(sap_lightcurve[I]))
     plt.xlabel("time (KBJD in days)")
     plt.ylabel("flux (in Kepler SAP ADU)")
-    plt.savefig("%s_photometry.png" % prefix)
+    savefig("%s_photometry.png" % prefix)
 
 if __name__ == "__main__":
     kicid = 3335426
