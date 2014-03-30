@@ -5,8 +5,7 @@
 This file is part of the OWL project.
 Copyright 2014 Dan Foreman-Mackey and David W. Hogg.
 
-Bugs:
------
+## bugs:
 * No testing framework; testing would rock this.
 * Things called "flux" should be called "intensities".
 * Global variable with `API()`.
@@ -30,7 +29,7 @@ else:
 
 def get_target_pixel_file(kicid, quarter):
     """
-    bugs:
+    ## bugs:
     * needs comment header.
     """
     kic = client.star(kicid)
@@ -41,13 +40,16 @@ def get_target_pixel_file(kicid, quarter):
     return tpfs[0]
 
 def evaluate_circular_two_d_gaussian(dx, dy, sigma2):
+    """
+    Only used in `get_fake_data()`.
+    """
     return (1. / (2. * np.pi * sigma2)) * np.exp(-0.5 * (dx * dx + dy * dy) / sigma2)
 
 def get_fake_data(nt, ny=5, nx=7):
     """
-    bugs:
-    * Needs comment header.
+    ## bugs:
     * Many magic numbers.
+    * Needs comment header.
     """
     xc, yc = 3. + 1. / 7., 2. + 4. / 9. # MAGIC NUMBERS
     psf_sigma2 = 1.1 * 1.1 # MAGIC NUMBER (in pixels * pixels)
@@ -67,7 +69,7 @@ def get_fake_data(nt, ny=5, nx=7):
 
 def get_pixel_mask(intensities, kplr_mask):
     """
-    bugs:
+    ## bugs:
     * needs comment header.
     """
     pixel_mask = np.zeros(intensities.shape)
@@ -77,7 +79,7 @@ def get_pixel_mask(intensities, kplr_mask):
 
 def get_epoch_mask(pixel_mask, kplr_mask):
     """
-    bugs:
+    ## bugs:
     * needs comment header.
     """
     foo = np.sum(np.sum((pixel_mask > 0), axis=2), axis=1)
@@ -88,16 +90,16 @@ def get_epoch_mask(pixel_mask, kplr_mask):
 
 def get_means_and_covariances(intensities, kplr_mask, clip_mask=None):
     """
-    inputs:
+    ## inputs:
     * `intensities` - what `kplr` calls `FLUX` from the `target_pixel_file`
     * `kplr_mask` - what `kplr` calls `hdu[2].data` from the same
     * `clip_mask` [optional] - read the source, Luke
 
-    outputs:
+    ## outputs:
     * `means` - one-d array of means for `kplr_mask > 0` pixels
     * `covars` - two-d array of covariances for same
 
-    bugs:
+    ## bugs:
     * Only deals with unit and zero weights, nothing else.
     * Uses `for` loops!
     * Needs more information in this comment header.
@@ -126,7 +128,7 @@ def get_means_and_covariances(intensities, kplr_mask, clip_mask=None):
 
 def get_objective_function(weights, means, covars):
     """
-    bugs:
+    ## bugs:
     * Needs more information in this comment header.
     """
     wm = np.dot(weights, means)
@@ -134,7 +136,7 @@ def get_objective_function(weights, means, covars):
 
 def get_chi_squareds(intensities, means, covars, kplr_mask):
     """
-    bugs:
+    ## bugs:
     * Needs more information in this comment header.
     """
     resids = intensities[:, kplr_mask > 0] - means[None, :]
@@ -145,7 +147,7 @@ def get_sigma_clip_mask(intensities, means, covars, kplr_mask, nsigma=4.0):
     """
     Sigma-clipper making use of the chi-squared distribution.
 
-    bugs:
+    ## bugs:
     * Not properly audited or tested.
     * Needs more information in this comment header.
     """
@@ -190,6 +192,11 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     - `time` - times in KBJD
     - `sap_photometry` - home-built SAP equivalent photometry
     - `owl_photometry` - OWL photometry
+
+    #3 bugs:
+    - Does unnecessary reformatting galore.
+    - Should split off plotting to a separate function.
+    - Comment header not complete.
     """
     fsf = 2.5 # MAGIC number used to stretch plots
     if fake:
@@ -213,14 +220,6 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
         intensities = table["FLUX"]
     nt, ny, nx = intensities.shape
     means, covars = get_robust_means_and_covariances(intensities, kplr_mask)
-
-    # get two eigenvectors (for later plotting)
-    eig = np.linalg.eig(covars)
-    eigval = eig[0]
-    eigvec = eig[1]
-    II = (np.argsort(eigval))[::-1]
-    eigvec0 = eigvec[II[0]]
-    eigvec1 = eigvec[II[1]]
 
     # get OWL and SAP weights
     sap_weights = np.zeros(kplr_mask.shape)
@@ -254,6 +253,14 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     print "OWL", np.min(owl_lightcurve), np.max(owl_lightcurve)
     if not makeplots:
         return time_in_kbjd, sap_lightcurve, owl_lightcurve
+
+    # get two eigenvectors (for plotting)
+    eig = np.linalg.eig(covars)
+    eigval = eig[0]
+    eigvec = eig[1]
+    II = (np.argsort(eigval))[::-1]
+    eigvec0 = eigvec[II[0]]
+    eigvec1 = eigvec[II[1]]
 
     # make images plot
     plt.gray()
