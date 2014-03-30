@@ -6,5 +6,6 @@ vc.tex: ../.git/logs/HEAD
 
 %.pdf: %.tex vc.tex
 	pdflatex $<
-	bash -c " ( grep Rerun $*.log && pdflatex $< ) || echo noRerun "
-	bash -c " ( grep Rerun $*.log && pdflatex $< ) || echo noRerun "
+	bash -c " ( grep Rerun\ to $*.log && pdflatex $< ) || echo noRerun "
+	bash -c " ( grep Rerun\ to $*.log && pdflatex $< ) || echo noRerun "
+	bash -c " ( grep Rerun\ to $*.log && pdflatex $< ) || echo noRerun "
