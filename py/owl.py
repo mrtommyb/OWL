@@ -282,7 +282,7 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     plt.colorbar()
     plt.subplot(335)
     plt.imshow(np.log10(covar_diag_img), interpolation="nearest", origin="lower")
-    plt.title(r"log diag($\hat{C}$")
+    plt.title(r"log diag($\hat{C})$")
     plt.colorbar()
     plt.subplot(336)
     plt.imshow(eigvec0_img, interpolation="nearest", origin="lower")
