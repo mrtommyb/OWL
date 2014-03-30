@@ -49,9 +49,11 @@ Amusingly, the approach we advocate does not in the end
 The optimized pixel weights can be found analytically;
   when they are used to perform photometry, they work extremely well.
 We demonstrate enormous improvements to the \project{Kepler} photometry of isolated stars.
-The Optimized-Weight Linear (OWL) Photometry produces photometric measurements so uniform that
+The Optimized-Weight Linear (OWL) photometry produces photometric measurements so uniform that
   they outperform or obviate much more heuristic (and much more scientifically damaging)
   ``detrending'' schemes in many real cases.
+In particular, the OWL photometry minimizes instrument-induced variance
+  but preserves all intrinsic stellar variability.
 All the OWL code is available under an open-source license.
 \end{abstract}
 
@@ -352,7 +354,8 @@ That is, we will do something like
 \end{eqnarray}
   where the operations are averages over the epochs,
   the vector product is the outer or tensor product,
-  and technically we require $N \gg D$ (far more epochs than pixels).
+  and technically we require $N \gg D$
+  (far more epochs than there are pixels in the tiny patch).
 It turns out that with small modifications
   (to make the means robust to outliers)
   this works well, at least for \project{Kepler} data (see below).
@@ -466,10 +469,14 @@ The ``lightcurves'' (flux \foreign{vs} time) for 19 pixels near...HOGG
 \begin{figure}
 \includegraphics[width=\textwidth]{kic_03335426_images.png}
 \caption{
-The empirical mean image $\hat{\mu}$,
+The top row shows example image patches (data $y_n$) from the \project{Kepler} data on KIC XXXX in quarter XXXX.
+The middle row shows the empirical mean image $\hat{\mu}$,
   the diagonal elements of the empirical covariance matrix $\hat{C}$,
-  the top two eigenvectors of the covariance matrix,
-  and the optimized weights\ldots HOGG
+  and its dominant eigenvector.
+The bottom row shows the pixel weights used in the official \project{Kepler} SAP photometry,
+  and the OWL weights $\hat{w}$.
+The bottom-right panels shows the OWL weights times the empirical mean;
+  this shows the mean contributions of the individual pixels to the final OWL photometry.
 \label{fig:images}}
 \end{figure}
 
