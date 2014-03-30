@@ -134,6 +134,11 @@ It is possible to think of this problem as the problem of finding the best strat
   that are used to calibrate or ratio the photometry of the object star.
   If there aren't, then it can be assumed that the imaging is very well calibrated.
 \item
+  The imaging is background- and foreground-subtracted,
+  such that the mean level of the smooth foregrounds and backgrounds in the imaging is zero.
+  The background level might vary or the subtraction of it might not be perfect,
+  but we can assume that it is has a mean of zero across pixels and epochs.
+\item
   It is expected that the star is fairly stationary in device coordinates (pixel location).
   However, in each image it has been offset slightly by some amount from its fiducial position.
   There are no reliable meta-data to help you understand those small offsets.
@@ -234,8 +239,6 @@ The image (flux map) is properly calibrated when it is can be treated as a measu
 It is ``smoothed'' because it is convolved (or correlated) with some finite
   and possibly spatially varying PSF
   (which we don't know).
-
-NEED TO SAY SOMETHING ABOUT ZERO-MEAN RESIDUAL BACKGROUND SUBTRACTION.
 
 Are any imaging data properly calibrated according to these criteria?
 We don't know, but the \project{Kepler} Satellite may be.
@@ -385,7 +388,7 @@ We compute robust statistics thusly\ldots HOGG
   the top two eigenvectors of the covariance matrix,
   and the optimized weights\ldots HOGG
 
-PERHAPS HERE PUT IN SOME INTUITION ABOUT WHAT MAKES WEIGHTS GO NEGATIVE?
+PERHAPS HERE PUT IN SOME INTUITION ABOUT HOW THE WEIGHTS GET SET?  WHAT MAKES WEIGHTS GO NEGATIVE?
 
 \figurename~\ref{fig:results} shows the \project{Kepler} SAP flux,
   and some standard heurisitic detrendings thereof.
@@ -399,7 +402,10 @@ COMMENT ON THE SLIGHTLY LARGER epoch-to-epoch NOISE LEVEL.  HOW TO MEASURE AND W
 
 What happened?
 
-In detail, the adjacent epoch-to-epoch noise was inflated a tiny bit by the OWL;
+In the results shown in \figurename~\ref{fig:results},
+  the instrumental effects on the lightcurve were removed beautifully by the OWL,
+  but in detail
+  the adjacent epoch-to-epoch noise was inflated a tiny bit;
   why?
 The OWL knows nothing about time ordering of the data;
   it makes no distinctions between slow and fast variations;
@@ -429,20 +435,44 @@ The OWL photometry---in its standard form shown in \figurename~\ref{fig:results}
   produces independent photometry at every epoch
   and preserves transit shapes and all intrinsic stellar variability.
 
-Why, in fact, a forward-modeling approach ought to win in the end.
-Why, nonetheless, this is not usually the chosen path these days.
+In the end, a forward-modeling approach ought to win.
+It won't obey \emph{The Rules}, but it is the only approach that has a chance
+  of saturating the Cram\'er--Rao bound.
+The forward-modeling approach is not trivial, however,
+  because the usual methods of image modeling,
+  which make use of simple models for the flat-field, point-spread function,
+  and the ``scene''
+  have (in general) model mismatch issues that project residuals
+  in the calibration parameters onto the photometry of greatest interest.
+That is, a forward-modeling approach that obtains photometry at the same
+  precision as the OWL would be expensive and complex.
+Still, it is the \emph{Right Thing To Do (tm)} and thus the One True Path for the future.
+One way to see this is to note that there is no obvious or simple generalization of the OWL
+  to the case of multi-instrument or multi-band imaging
+  (where pixel scale or bandpass vary from epoch to epoch).
 
-How would this generalize to ``matched photometry'' across bands or images from different setups.
+The OWL method depends very strongly on good background subtraction.
+The reason is that it seeks to obtain high expectation value and low variance.
+If there is a constant background that hasn't been subtracted,
+  the weights will choose to add in a lot of constant background
+  and possibly down-weight a variable source.
+The main requirement is that the background has been subtracted such
+  that the mean background level in all pixels at all epochs is negligible.
+The background subtraction can be noisy and variable,
+  but it must be accurate in the mean.
 
-Intrapixel sensitivity variations;
-  how do we know these happen and how does this method account for them?
+On a related note, the image patch under consideration ought not be \emph{far}
+  bigger than the region over which a normal would perform photometry.
+For example, if the number of pixels in the object-star image patch becomes
+  much larger than the number of epochs,
+  the OWL will be able to find linear combinations of pixels that have
+  more-or-less perfectly constant flux.
+This over-fitting issue is not a problem in what's shown above,
+  but could start to become a problem if large patches get used,
+  and would be exacerbated in the presence of non-zero mean background subtraction residuals.
+This deserves further study.
 
-What happens if you don't have good background subtraction or a DC level?
-
-On a related note, what if you have a \emph{huge} image patch centered on the star;
-  issues?  YES.
-
-The biggest (in our view) limitation of this method is that it cannot be used
+The biggest (in our view) limitation of the OWL is that it cannot be used
   to accurately measure the properties of stars
   that are close enough that their point-spread functions overlap,
   or stars in crowded fields.
@@ -451,14 +481,17 @@ The issue is that the optimization procedure has no knowledge or understanding
 In our view, the only justifiable solution to this problem is forward modeling,
   in which there are parameterized beliefs about the PSF and the scene,
   and in which the output photometry comes from analysis of a likelihood function.
-The only conceivable generalization of optimized linear photometry that might be relevant
-  would involve taking the optimum subject to the constraint that the weights must be
-  orthogonal to some estimate of the overlapping star point-spread functions.
-That is an interesting idea,
+The only conceivable generalizations of the OWL that might be relevant would either
+  \textsl{(a)}~involve taking the optimum subject to the constraint that the weights must be
+  orthogonal to some estimate of the overlapping star point-spread functions, or else
+  \textsl{(b)}~require modeling and subtraction of the confusing source or sources
+  in the field.
+These are interesting ideas,
   but probably no easier or more reliable than full forward modeling.
 Although we consider this non-isolated problem to be the most severe limitation of what we are doing,
-  we note that the tremendous results of the \project{Kepler} mission
-  have almost all been generated with straight-up aperture photometry.
+  we note that the tremendous discoveries and measurements of the \project{Kepler} mission
+  have almost all been generated with straight-up aperture photometry,
+  followed by \foreign{ex post facto} checks for blending.
 There certainly is a great deal that can be done in the isolated-star limit.
 
 All of the code used in this project is available
