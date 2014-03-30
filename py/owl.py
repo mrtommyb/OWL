@@ -233,14 +233,8 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
         foo = np.zeros_like(intensities[0])
         foo[kplr_mask > 0] = bar
         return foo
-    mean_img = reformat_as_image(means)
-    covar_diag_img = reformat_as_image(np.diag(covars))
-    eigvec0_img = reformat_as_image(eigvec0)
-    eigvec1_img = reformat_as_image(eigvec1)
     owl_weight_img = reformat_as_image(owl_weights)
-    owl_frac_contribs_img = owl_weight_img * mean_img
     sap_weight_img = reformat_as_image(sap_weights)
-    sap_frac_contribs_img = sap_weight_img * mean_img
 
     # get photometry
     pixel_mask = get_pixel_mask(intensities, kplr_mask)
@@ -261,6 +255,14 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     II = (np.argsort(eigval))[::-1]
     eigvec0 = eigvec[II[0]]
     eigvec1 = eigvec[II[1]]
+
+    # more reformatting
+    mean_img = reformat_as_image(means)
+    covar_diag_img = reformat_as_image(np.diag(covars))
+    eigvec0_img = reformat_as_image(eigvec0)
+    eigvec1_img = reformat_as_image(eigvec1)
+    owl_frac_contribs_img = owl_weight_img * mean_img
+    sap_frac_contribs_img = sap_weight_img * mean_img
 
     # make images plot
     plt.gray()
@@ -306,7 +308,8 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     plt.figure(figsize=(fsf * nx, 0.5 * fsf * nx))
     plt.clf()
     plt.title(title)
-    I = epoch_mask > 0
+    clip_mask = get_sigma_clip_mask(intensities, means, covars, kplr_mask)
+    I = (epoch_mask > 0) * (clip_mask > 0)
     plt.plot(time_in_kbjd[I], sap_lightcurve[I], "k-", alpha=0.5)
     plt.text(time_in_kbjd[-1], sap_lightcurve[-1], "SAP", alpha=0.5)
     plt.plot(time_in_kbjd[I], owl_lightcurve[I], "k-")
