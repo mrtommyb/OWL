@@ -159,7 +159,7 @@ def get_robust_means_and_covariances(intensities, kplr_mask, clip_mask=None):
     """
     Iterative sigma-clipping version of `get_means_and_covariances()`.
 
-    bugs:
+    ## bugs:
     * Magic number 5 hard-coded.
     * Needs more information in this comment header.
     """
@@ -170,14 +170,28 @@ def get_robust_means_and_covariances(intensities, kplr_mask, clip_mask=None):
     return means, covars
 
 def get_owl_weights(means, covars):
+    """
+    nees no comment
+    """
     return np.linalg.solve(covars, means)
 
 def savefig(fn):
     print "writing file " + fn
     plt.savefig(fn)
 
-def photometer_and_plot(kicid, fake=False):
-    fsf = 2.5
+def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
+    """
+    ## inputs:
+    - `kicid` - KIC number
+    - `quarter` - Kepler observing quarter (or really place in list of files)
+
+    ## outputs:
+    - [some plots]
+    - `time` - times in KBJD
+    - `sap_photometry` - home-built SAP equivalent photometry
+    - `owl_photometry` - OWL photometry
+    """
+    fsf = 2.5 # MAGIC number used to stretch plots
     if fake:
         prefix = "fake"
         title = "fake data"
@@ -186,10 +200,11 @@ def photometer_and_plot(kicid, fake=False):
     else:
         prefix = "kic_%08d" % (kicid, )
         title = "KIC %08d" % (kicid, )
-        tpf = get_target_pixel_file(kicid, 5)
-        fig = tpf.plot(figsize=(fsf * nx, fsf * ny))
-        fig.title(title)
-        savefig("%s_pixels.png" % prefix)
+        tpf = get_target_pixel_file(kicid, quarter)
+        if makeplots:
+            fig = tpf.plot(figsize=(fsf * nx, fsf * ny))
+            fig.title(title)
+            savefig("%s_pixels.png" % prefix)
         with tpf.open() as hdu:
             table = hdu[1].data
             kplr_mask = hdu[2].data
@@ -237,6 +252,8 @@ def photometer_and_plot(kicid, fake=False):
     owl_lightcurve = np.sum(np.sum(fubar_intensities * owl_weight_img[None, :, :], axis=2), axis=1)
     print "SAP", np.min(sap_lightcurve), np.max(sap_lightcurve)
     print "OWL", np.min(owl_lightcurve), np.max(owl_lightcurve)
+    if not makeplots:
+        return time_in_kbjd, sap_lightcurve, owl_lightcurve
 
     # make images plot
     plt.gray()
@@ -293,7 +310,10 @@ def photometer_and_plot(kicid, fake=False):
     plt.ylabel("flux (in Kepler SAP ADU)")
     savefig("%s_photometry.png" % prefix)
 
+    return time_in_kbjd, sap_lightcurve, owl_lightcurve
+
 if __name__ == "__main__":
     kicid = 3335426
-    photometer_and_plot(kicid, fake=True)
-    # photometer_and_plot(kicid)
+    quarter = 5
+    t, s, o = photometer_and_plot(kicid, quarter, fake=True)
+    # t, s, o = photometer_and_plot(kicid, quarter)
