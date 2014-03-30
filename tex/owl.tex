@@ -416,14 +416,24 @@ The optimized weight vector might seem counterintuitive;
 The fundamental reason is that the weight vector is trying to get as orthogonal as possible
   to the high-variance eigenvectors of the variance tensor.
 In the end, the highest-weight pixels do not all deliver significant signal;
-  in \figurename~\ref{fig:images} we also show the OWL weights times the empirical mean,
+  in \figurename~\ref{fig:images} we also show
+  the pixel-wise product of the OWL weights with the empirical mean values,
   which gives a sense of where the bulk of the photometric signal is coming from.
 
 \figurename~\ref{fig:results} shows the \project{Kepler} SAP flux,
   and some standard heurisitic detrendings thereof.
-It also shows the the OWL photometry \ldots HOGG
+It also shows the the OWL photometry,
+  which---recall---involves no explicit detrending.
+It is simply the weighting of the pixels that optimizes the empirical output signal-to-noise.
 
-COMMENT ON THE SLIGHTLY LARGER epoch-to-epoch NOISE LEVEL.  HOW TO MEASURE AND WHAT TO SAY?
+In detail, the OWL photometry is a tiny bit noisier in a pixel-to-pixel sense
+  than the SAP photometry,
+  despite being far better overall.
+This is coming from the fact that the OWL weights are trying to suppress the dominant
+  sources of variance,
+  which are entering the data on long time-scales.
+The focus on the biggest variance components limits what the OWL can do.
+In the discussion (SHOULD WE MOVE IT HERE), we return to this issue and perform a relevant experiment.
 
 \section{Comparison stars}
 
