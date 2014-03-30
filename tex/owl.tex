@@ -389,9 +389,18 @@ In practice it doesn't matter how we choose this unless either machine precision
 
 \section{\project{Kepler} data}
 
-NEED SOME INTRODUCTION TO THE STRUCTURE OF THE KEPLER PIXEL DATA and MASK.
-
-\figurename~\ref{fig:pixels} shows time histories for 19 pixels in\ldots HOGG
+For each star in the Kepler data (identified by a KIC number),
+  there is a small patch of telemetered pixels,
+  and some 4000 epochs per quarter and up to 17 quarters of data.
+The patch of pixels has an associated mask,
+  which indicates both which pixels are good data,
+  and also which were summed to make the official pipeline
+  Simple Aperture Photometry (SAP).
+The weights used to generate the SAP photometry are constant within a quarter,
+  and all snapped to either zero or unity.
+\figurename~\ref{fig:pixels} shows time histories for the 19 pixels relevant
+  to KIC~3335426 from the fifth quarter in which it was observed.
+Also shown are the three pixels that got unit weight in the SAP photometry for this star.
 
 The \project{Kepler} data are extremely good, but there are some outliers,
   presumably from cosmic rays.
@@ -411,7 +420,9 @@ Importantly, we sigma-clip at the epoch level, not the pixel level.
   the top eigenvector of the covariance matrix,
   and the OWL weights, along with the weights used by the \project{Kepler} pipeline,
   and a few data examples.
-The optimized weight vector might seem counterintuitive;
+We resolved the overall scale degeneracy for the weights (see above)
+  by requiring that the OWL and SAP photometry produce identical median flux.
+The optimized weight vector shown in \figurename~\ref{fig:images} might seem counterintuitive;
   it puts substantial weight off the peak of the mean intensity.
 The fundamental reason is that the weight vector is trying to get as orthogonal as possible
   to the high-variance eigenvectors of the variance tensor.
@@ -433,9 +444,19 @@ This is coming from the fact that the OWL weights are trying to suppress the dom
   sources of variance,
   which are entering the data on long time-scales.
 The focus on the biggest variance components limits what the OWL can do.
-In the discussion (SHOULD WE MOVE IT HERE), we return to this issue and perform a relevant experiment.
+We return to this issue and perform a relevant experiment in the Discussion below.
 
 \section{Comparison stars}
+
+You can operate the OWL for all $K$ stars.
+Then scale each star so it predicts as well as possible the object star.
+Then take robust means or medians of the $K$ predictors and divide them out.
+
+Or you can use all of the pixels in all the patches around all $K$ stars
+  to build a predictive model for the pixels in the object star's patch.
+This permits creation of a very stable data-driven calibration of the data.
+We are pursuing this in a separate project;
+  it is not even close to being ready for prime time.
 
 \section{Discussion}
 
