@@ -391,9 +391,43 @@ PERHAPS HERE PUT IN SOME INTUITION ABOUT WHAT MAKES WEIGHTS GO NEGATIVE?
   and some standard heurisitic detrendings thereof.
 It also shows the the OWL photometry \ldots HOGG
 
+COMMENT ON THE SLIGHTLY LARGER epoch-to-epoch NOISE LEVEL.  HOW TO MEASURE AND WHAT TO SAY?
+
 \section{Comparison stars}
 
 \section{Discussion}
+
+What happened?
+
+In detail, the adjacent epoch-to-epoch noise was inflated a tiny bit by the OWL;
+  why?
+The OWL knows nothing about time ordering of the data;
+  it makes no distinctions between slow and fast variations;
+  it is just trying to maximize signal-to-noise.
+Slow variations like those shown in \figurename~\ref{fig:results}
+  are just another source of total variance.
+If a user knows a lot about what timescales are relevant,
+  the OWL can be improved enormously.
+To demonstrate, we ran an experiment in which we filtered the \project{Kepler} pixel-level data
+  for KIC~XXXX in quarter XXXX
+  with a 48-hour median filter to remove the long-timescale variability.
+We subtracted the median filter output from each pixel lightcurve and added back in the mean.
+The pixel lightcurves are shown in \figurename~\ref{fig:pixels_filter}
+  and the output of the OWL photometry is shown in \figurename~\ref{fig:results_filter}.
+Because the pixels were partially ``detrended'' by this process,
+  the OWL weights are not putting as much effort into removing the large-scale trends.
+
+This kind of detrending is common in the exoplanet community;
+  it has been valuable for finding exoplanets.
+It brings many disadvantages;
+  one is that any detrending method that happens prior to exoplanet search
+  distorts the transit shapes and depths.
+Another is that it removes stellar variability that might be of intrinsic interest.
+Another is that it correlates data that are close in time;
+  it creates non-trivial noise for lightcurve fitting.
+The OWL photometry---in its standard form shown in \figurename~\ref{fig:results}---%
+  produces independent photometry at every epoch
+  and preserves transit shapes and all intrinsic stellar variability.
 
 Why, in fact, a forward-modeling approach ought to win in the end.
 Why, nonetheless, this is not usually the chosen path these days.
