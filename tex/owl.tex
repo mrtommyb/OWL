@@ -431,13 +431,20 @@ In the end, the highest-weight pixels do not all deliver significant signal;
   the pixel-wise product of the OWL weights with the empirical mean values,
   which gives a sense of where the bulk of the photometric signal is coming from.
 
-\figurename~\ref{fig:results} shows the \project{Kepler} SAP flux,
+\figurename~\ref{fig:results} shows the \project{Kepler} SAP flux for KIC~3335426,
   and some standard heurisitic detrendings thereof.
-It also shows the the OWL photometry,
-  which---recall---involves no explicit detrending.
+These detrendings are created by filtering or fitting-and-subtracting
+  the SAP photometry;
+  they remove intrinsic stellar variability and create artificial epoch-to-epoch correlations
+  in the photometric noise.
+\figurename~\ref{fig:results} shows the the OWL photometry
+  (and some variants discussed below).
+The OWL photometry very effectively  detrends the data,
+  even though it involves \emph{no explicit detrending}.
+That is, it is just a soft-aperture aperture photometry, identical from epoch to epoch.
 It is simply the weighting of the pixels that optimizes the empirical output signal-to-noise.
 
-In detail, the OWL photometry is a tiny bit noisier in a pixel-to-pixel sense
+In detail, the OWL photometry is a tiny bit noisier in an epoch-to-epoch sense
   than the SAP photometry,
   despite being far better overall.
 This is coming from the fact that the OWL weights are trying to suppress the dominant
@@ -445,6 +452,44 @@ This is coming from the fact that the OWL weights are trying to suppress the dom
   which are entering the data on long time-scales.
 The focus on the biggest variance components limits what the OWL can do.
 We return to this issue and perform a relevant experiment in the Discussion below.
+
+\section{Variations on the OWL}
+
+After running the OWL on multiple \project{Kepler} targets,
+  we developed a few intuitions that led to variations.
+In one, we constrain the weights to be positive;
+  this protects against the optimizer finding locations in weight-space
+  that perform subtractions of large numbers to reduce variance.
+This problem arises most strongly when the star being photometerd is intrisically variable
+  with a large amplitude:
+In these cases, the largest variance can be from the star itself;
+  the OWL tries to find weights that cancel out the target star!
+
+The Optimized Positive-Weight (OPW) photometry works still at the optimum of
+\begin{eqnarray}
+\Sigma^2 &=& \frac{[\transpose{w}\, \hat{\mu}]^2}{\transpose{w}\, \hat{C}\, w}
+\quad ,
+\end{eqnarray}
+but now subject to the constraint that every element of $w$ must be non-negative.
+\figurename~\ref{fig:images_opw} and \figurename~\ref{fig:results}
+\includegraphics[width=\textwidth]{kic_03335426_photometry.png}
+ shows the results of the OPW for KIC~3335426,
+ and \figurename~\ref{fig:results_variable} show the results of the OPW
+ for a more variable star.
+The positivity constraint seems salutory when the target star is somewhat variable.
+
+In another variation, we looked at stars that saturate the \project{Kepler} detectors.
+These stars show bleed trails along the CCD columns,
+  although the \project{Kepler} gains have been set cleverly
+  to ensure that precise photometry of these saturated stars is nonetheless possible with SAP photometry.
+In the case of saturated stars, the OWL and OPW photometry do not work well
+  because the saturation leads to some pixels being exceedingly constant,
+  even if the source is intrinsically moving or varying.
+That is, the saturated pixels do not show much empirical variance,
+  and get overly large weight in the optimization.
+
+For these saturated cases we devised a Tweaked Simple Aperture (TSA) photometry,
+  that 
 
 \section{Comparison stars}
 
@@ -589,7 +634,7 @@ An optimal extraction algorithm for imaging photometry,
 
 \clearpage
 \begin{figure}
-~ % \includegraphics[width=\textwidth]{kic_03335426_pixels.png}
+\includegraphics[width=\textwidth]{kic_03335426_pixels.png}
 \caption{
 The ``lightcurves'' (flux \foreign{vs} time) for 19 pixels near...HOGG
 \label{fig:pixels}}
@@ -597,7 +642,7 @@ The ``lightcurves'' (flux \foreign{vs} time) for 19 pixels near...HOGG
 
 \clearpage
 \begin{figure}
-\includegraphics[width=\textwidth]{kic_03335426_images.png}
+\includegraphics[width=\textwidth]{kic_03335426_images_owl.png}
 \caption{
 The top row shows example image patches (data $y_n$) from the \project{Kepler} data on KIC XXXX in quarter XXXX.
 The middle row shows the empirical mean image $\hat{\mu}$,
@@ -612,10 +657,23 @@ The bottom-right panels shows the OWL weights times the empirical mean;
 
 \clearpage
 \begin{figure}
+\includegraphics[width=\textwidth]{kic_03335426_images_opwl.png}
+\caption{
+The same as the bottom row of \figurename~\ref{fig:images}
+  but for the optimized positive-weight (OPW) photometry.
+In this case, the positivity constraint does not make much difference.
+\label{fig:images_opw}}
+\end{figure}
+
+\clearpage
+\begin{figure}
 \includegraphics[width=\textwidth]{kic_03335426_photometry.png}
 \caption{
-The \project{Kepler} SAP flux
-  and the optimized-weight linear (OWL) photometry\ldots HOGG THIS NEEDS PDC FOR COMPARISON
+The \project{Kepler} SAP flux,
+  the optimized-weight linear (OWL) photometry,
+  the optimized positive-weight (OPW) photometry,
+  and the tweaked simple aperture (TSA) photometry,
+  all for quarter 5 of KIC~3335426.
 \label{fig:results}}
 \end{figure}
 

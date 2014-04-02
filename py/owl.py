@@ -190,7 +190,7 @@ def get_objective_function(weights, means, covars, ln=False):
     wm = np.dot(ws, means)
     return 1.e6 * np.dot(ws, np.dot(covars, ws)) / (wm * wm)
 
-def get_opwl_weights(means, covars, owl_weights=None):
+def get_opw_weights(means, covars, owl_weights=None):
     """
     needs comment
     """
@@ -266,16 +266,16 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     owl_weight_img = reformat_as_image(owl_weights)
     owl_lightcurve = np.sum(np.sum(fubar_intensities * owl_weight_img[None, :, :], axis=2), axis=1)
 
-    # get OPWL weights and photometry
-    opwl_weights = get_opwl_weights(means, covars, owl_weights=owl_weights)
-    opwl_weights *= np.sum(sap_weights * means) / np.sum(opwl_weights * means)
-    opwl_weight_img = reformat_as_image(opwl_weights)
-    opwl_lightcurve = np.sum(np.sum(fubar_intensities * opwl_weight_img[None, :, :], axis=2), axis=1)
+    # get OPW weights and photometry
+    opw_weights = get_opw_weights(means, covars, owl_weights=owl_weights)
+    opw_weights *= np.sum(sap_weights * means) / np.sum(opw_weights * means)
+    opw_weight_img = reformat_as_image(opw_weights)
+    opw_lightcurve = np.sum(np.sum(fubar_intensities * opw_weight_img[None, :, :], axis=2), axis=1)
     print "SAP", np.min(sap_lightcurve), np.max(sap_lightcurve)
     print "OWL", np.min(owl_lightcurve), np.max(owl_lightcurve)
-    print "OPWL", np.min(opwl_lightcurve), np.max(opwl_lightcurve)
+    print "OPW", np.min(opw_lightcurve), np.max(opw_lightcurve)
     if not makeplots:
-        return time_in_kbjd, sap_lightcurve, owl_lightcurve, opwl_lightcurve
+        return time_in_kbjd, sap_lightcurve, owl_lightcurve, opw_lightcurve
 
     # get two eigenvectors (for plotting)
     eig = np.linalg.eig(covars)
@@ -292,7 +292,7 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     eigvec1_img = reformat_as_image(eigvec1)
     sap_frac_contribs_img = sap_weight_img * mean_img
     owl_frac_contribs_img = owl_weight_img * mean_img
-    opwl_frac_contribs_img = opwl_weight_img * mean_img
+    opw_frac_contribs_img = opw_weight_img * mean_img
 
     # make images plot
     plt.gray()
@@ -334,7 +334,7 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     plt.colorbar()
     savefig("%s_images_owl.png" % prefix)
 
-    # make OPWL plot
+    # make OPW plot
     plt.figure(figsize=(fsf * nx, fsf * ny / 3.)) # MAGIC
     plt.clf()
     plt.title(title)
@@ -343,14 +343,14 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     plt.title(r"SAP weights")
     plt.colorbar()
     plt.subplot(132)
-    plt.imshow(opwl_weight_img, interpolation="nearest", vmin=vmin, vmax=vmax)
-    plt.title(r"OPWL weights")
+    plt.imshow(opw_weight_img, interpolation="nearest", vmin=vmin, vmax=vmax)
+    plt.title(r"OPW weights")
     plt.colorbar()
     plt.subplot(133)
-    plt.imshow(opwl_weight_img * mean_img, interpolation="nearest", vmin=-np.max(opwl_weight_img * mean_img))
-    plt.title(r"OPWL mean contribs")
+    plt.imshow(opw_weight_img * mean_img, interpolation="nearest", vmin=-np.max(opw_weight_img * mean_img))
+    plt.title(r"OPW mean contribs")
     plt.colorbar()
-    savefig("%s_images_opwl.png" % prefix)
+    savefig("%s_images_opw.png" % prefix)
 
     # make photometry plot
     plt.figure(figsize=(fsf * nx, 0.5 * fsf * nx))
@@ -366,9 +366,9 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     plt.text(time_in_kbjd[0], shift1 + owl_lightcurve[0], "OWL-", ha="right")
     plt.text(time_in_kbjd[-1], shift1 + owl_lightcurve[-1], "-OWL")
     shift2 = 0.25 * (np.min(sap_lightcurve[I]) - np.median(sap_lightcurve[I]))
-    plt.plot(time_in_kbjd[I], shift2 + opwl_lightcurve[I], "k-")
-    plt.text(time_in_kbjd[0], shift2 + opwl_lightcurve[0], "OPWL-", ha="right")
-    plt.text(time_in_kbjd[-1], shift2 + opwl_lightcurve[-1], "-OPWL")
+    plt.plot(time_in_kbjd[I], shift2 + opw_lightcurve[I], "k-")
+    plt.text(time_in_kbjd[0], shift2 + opw_lightcurve[0], "OPW-", ha="right")
+    plt.text(time_in_kbjd[-1], shift2 + opw_lightcurve[-1], "-OPW")
     plt.xlim(np.min(time_in_kbjd[I]) - 4., np.max(time_in_kbjd[I]) + 4.) # MAGIC
     plt.xlabel("time (KBJD in days)")
     plt.ylabel("flux (in Kepler SAP ADU)")
@@ -381,8 +381,6 @@ if __name__ == "__main__":
     kicid = 3335426
     quarter = 5
     t, s, o = photometer_and_plot(kicid, quarter, fake=True)
-
-if False:
     t, s, o = photometer_and_plot(kicid, quarter)
     kicid = 8692861
     t, s, o = photometer_and_plot(kicid, quarter)
