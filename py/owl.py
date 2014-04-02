@@ -48,18 +48,20 @@ def evaluate_circular_two_d_gaussian(dx, dy, sigma2):
 
 def get_fake_data(nt, ny=5, nx=7):
     """
+    Make a moving, varying, PSF-changing source plus noise.
+
     ## bugs:
     * Many magic numbers.
     * Needs comment header.
     """
     xc, yc = 3. + 1. / 7., 2. + 4. / 9. # MAGIC NUMBERS
     psf_sigma2 = 1.1 * 1.1 # MAGIC NUMBER (in pixels * pixels)
-    psf_sigma2 = psf_sigma2 + 0.01 * np.arange(nt) / nt
-    flux = 100000. # MAGIC NUMBER (in ADU per image)
-    flux = flux + 0.002 * flux * np.sin(np.arange(nt) / 50. )
+    psf_sigma2 = psf_sigma2 + 1. * np.arange(nt) / nt
+    flux = 10000. # MAGIC NUMBER (in ADU per image)
+    flux = flux + 0.001 * flux * np.sin(np.arange(nt) / 50. )
     gain = 0.01 # MAGIC NUMBER (in electrons per ADU)
     fake_sky_noise = np.sqrt(1.) * np.random.normal(size = (nt, ny, nx)) # MAGIC NUMBER in ADU per pixel per image
-    xc = xc + 1.0 * np.arange(nt) / nt
+    xc = xc + 0.3 * np.arange(nt) / nt
     yc = yc + np.zeros(nt)
     xg, yg = np.meshgrid(range(nx), range(ny))
     fake_mean = flux[:, None, None] * evaluate_circular_two_d_gaussian(xg[None, :, :] - xc[:, None, None],
@@ -69,8 +71,9 @@ def get_fake_data(nt, ny=5, nx=7):
     fake_mask = np.ones((ny, nx))
     fake_mask[0, 0] = 0
     mean_fake_mean = np.mean(fake_mean, axis=0)
+    fake_bg = 0.01 * np.random.normal(size = nt) # MAGIC
     fake_mask[mean_fake_mean > np.percentile(mean_fake_mean, 87.5)] = 3 # MORE MAGIC
-    return fake_mean + fake_sky_noise + fake_obj_noise, fake_mask
+    return fake_mean + fake_sky_noise + fake_obj_noise + fake_bg[:, None, None], fake_mask
 
 def get_pixel_mask(intensities, kplr_mask):
     """
@@ -358,16 +361,15 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     plt.plot(time_in_kbjd[I], sap_lightcurve[I], "k-", alpha=0.5)
     plt.text(time_in_kbjd[0], sap_lightcurve[0], "SAP-", alpha=0.5, ha="right")
     plt.text(time_in_kbjd[-1], sap_lightcurve[-1], "-SAP", alpha=0.5)
-    shift = np.min(sap_lightcurve[I]) - np.median(sap_lightcurve[I])
-    plt.plot(time_in_kbjd[I], shift + owl_lightcurve[I], "k-")
-    plt.text(time_in_kbjd[0], shift + owl_lightcurve[0], "OWL-", ha="right")
-    plt.text(time_in_kbjd[-1], shift + owl_lightcurve[-1], "-OWL")
-    shift = 2. * shift
-    plt.plot(time_in_kbjd[I], shift + opwl_lightcurve[I], "k-")
-    plt.text(time_in_kbjd[0], shift + opwl_lightcurve[0], "OPWL-", ha="right")
-    plt.text(time_in_kbjd[-1], shift + opwl_lightcurve[-1], "-OPWL")
+    shift1 = 0.25 * (np.max(sap_lightcurve[I]) - np.median(sap_lightcurve[I]))
+    plt.plot(time_in_kbjd[I], shift1 + owl_lightcurve[I], "k-")
+    plt.text(time_in_kbjd[0], shift1 + owl_lightcurve[0], "OWL-", ha="right")
+    plt.text(time_in_kbjd[-1], shift1 + owl_lightcurve[-1], "-OWL")
+    shift2 = 0.25 * (np.min(sap_lightcurve[I]) - np.median(sap_lightcurve[I]))
+    plt.plot(time_in_kbjd[I], shift2 + opwl_lightcurve[I], "k-")
+    plt.text(time_in_kbjd[0], shift2 + opwl_lightcurve[0], "OPWL-", ha="right")
+    plt.text(time_in_kbjd[-1], shift2 + opwl_lightcurve[-1], "-OPWL")
     plt.xlim(np.min(time_in_kbjd[I]) - 4., np.max(time_in_kbjd[I]) + 4.) # MAGIC
-    plt.ylim(0.99 * np.min(shift + opwl_lightcurve[I]), 1.01 * np.max(sap_lightcurve[I])) # MAGIC
     plt.xlabel("time (KBJD in days)")
     plt.ylabel("flux (in Kepler SAP ADU)")
     savefig("%s_photometry.png" % prefix)
