@@ -17,6 +17,7 @@ if __name__ == '__main__':
     matplotlib.use('Agg')
 import numpy as np
 import pylab as plt
+import scipy.optimize as op
 import kplr
 client = kplr.API()
 
@@ -54,14 +55,15 @@ def get_fake_data(nt, ny=5, nx=7):
     xc, yc = 3. + 1. / 7., 2. + 4. / 9. # MAGIC NUMBERS
     psf_sigma2 = 1.1 * 1.1 # MAGIC NUMBER (in pixels * pixels)
     psf_sigma2 = psf_sigma2 + 0.01 * np.arange(nt) / nt
-    flux = 10000. # MAGIC NUMBER (in ADU per image)
-    flux = flux + 0.001 * flux * np.sin(np.arange(nt) / 50. )
-    gain = 0.0 # MAGIC NUMBER (in electrons per ADU)
+    flux = 100000. # MAGIC NUMBER (in ADU per image)
+    flux = flux + 0.002 * flux * np.sin(np.arange(nt) / 50. )
+    gain = 0.01 # MAGIC NUMBER (in electrons per ADU)
     fake_sky_noise = np.sqrt(1.) * np.random.normal(size = (nt, ny, nx)) # MAGIC NUMBER in ADU per pixel per image
-    xc = xc + 0.01 * np.arange(nt) / nt
+    xc = xc + 1.0 * np.arange(nt) / nt
     yc = yc + np.zeros(nt)
     xg, yg = np.meshgrid(range(nx), range(ny))
-    fake_mean = flux[:, None, None] * evaluate_circular_two_d_gaussian(xg[None, :, :] - xc[:, None, None], yg[None, :, :] - yc[:, None, None],
+    fake_mean = flux[:, None, None] * evaluate_circular_two_d_gaussian(xg[None, :, :] - xc[:, None, None],
+                                                                       yg[None, :, :] - yc[:, None, None],
                                                                        psf_sigma2[:, None, None])
     fake_obj_noise = np.sqrt(gain * fake_mean) * np.random.normal(size = (nt, ny, nx))
     fake_mask = np.ones((ny, nx))
@@ -130,14 +132,6 @@ def get_means_and_covariances(intensities, kplr_mask, clip_mask=None):
     covars = covars[:, (kplr_mask > 0)]
     return means, covars
 
-def get_objective_function(weights, means, covars):
-    """
-    ## bugs:
-    * Needs more information in this comment header.
-    """
-    wm = np.dot(weights, means)
-    return 1.e6 * np.dot(weights, np.dot(covars, weights)) / (wm * wm)
-
 def get_chi_squareds(intensities, means, covars, kplr_mask):
     """
     ## bugs:
@@ -177,9 +171,31 @@ def get_robust_means_and_covariances(intensities, kplr_mask, clip_mask=None):
 
 def get_owl_weights(means, covars):
     """
-    nees no comment
+    needs no comment
     """
     return np.linalg.solve(covars, means)
+
+def get_objective_function(weights, means, covars, ln=False):
+    """
+    ## bugs:
+    * Needs more information in this comment header.
+    """
+    if ln:
+        ws = np.exp(weights)
+    else:
+        ws = weights
+    wm = np.dot(ws, means)
+    return 1.e6 * np.dot(ws, np.dot(covars, ws)) / (wm * wm)
+
+def get_opwl_weights(means, covars, owl_weights=None):
+    """
+    needs comment
+    """
+    if owl_weights is None:
+        owl_weights = get_owl_weights(means, covars)
+    start_ln_weights = np.log(np.abs(owl_weights))
+    ln_weights = op.fmin(get_objective_function, start_ln_weights, args=(means, covars, True))
+    return np.exp(ln_weights)
 
 def savefig(fn):
     print "writing file " + fn
@@ -288,7 +304,7 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
         plt.title("exposure %d" % ii)
         plt.colorbar()
     plt.subplot(334)
-    plt.imshow(np.median(sap_lightcurve) * mean_img, interpolation="nearest", vmin=vmin, vmax=vmax)
+    plt.imshow(mean_img, interpolation="nearest", vmin=vmin, vmax=vmax)
     plt.title(r"mean $\hat{\mu}$")
     plt.colorbar()
     plt.subplot(335)
@@ -299,10 +315,10 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     plt.imshow(eigvec0_img, interpolation="nearest")
     plt.title(r"dominant $\hat{C}$ eigenvector")
     plt.colorbar()
-    vmax = 1.2
+    vmax = 1.2 * np.max(sap_weight_img)
     vmin = -1. * vmax
     plt.subplot(337)
-    plt.imshow(1. * sap_weight_img, interpolation="nearest", vmin=vmin, vmax=vmax)
+    plt.imshow(sap_weight_img, interpolation="nearest", vmin=vmin, vmax=vmax)
     plt.title(r"SAP weights")
     plt.colorbar()
     plt.subplot(338)
@@ -310,10 +326,28 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     plt.title(r"OWL weights")
     plt.colorbar()
     plt.subplot(339)
-    plt.imshow(owl_weight_img * mean_img, interpolation="nearest")
+    plt.imshow(owl_weight_img * mean_img, interpolation="nearest", vmin=-np.max(owl_weight_img * mean_img))
     plt.title(r"OWL mean contribs")
     plt.colorbar()
-    savefig("%s_images.png" % prefix)
+    savefig("%s_images_owl.png" % prefix)
+
+    # make OPWL plot
+    plt.figure(figsize=(fsf * nx, fsf * ny / 3.)) # MAGIC
+    plt.clf()
+    plt.title(title)
+    plt.subplot(131)
+    plt.imshow(sap_weight_img, interpolation="nearest", vmin=vmin, vmax=vmax)
+    plt.title(r"SAP weights")
+    plt.colorbar()
+    plt.subplot(132)
+    plt.imshow(opwl_weight_img, interpolation="nearest", vmin=vmin, vmax=vmax)
+    plt.title(r"OPWL weights")
+    plt.colorbar()
+    plt.subplot(133)
+    plt.imshow(opwl_weight_img * mean_img, interpolation="nearest", vmin=-np.max(opwl_weight_img * mean_img))
+    plt.title(r"OPWL mean contribs")
+    plt.colorbar()
+    savefig("%s_images_opwl.png" % prefix)
 
     # make photometry plot
     plt.figure(figsize=(fsf * nx, 0.5 * fsf * nx))
@@ -322,11 +356,18 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     clip_mask = get_sigma_clip_mask(intensities, means, covars, kplr_mask)
     I = (epoch_mask > 0) * (clip_mask > 0)
     plt.plot(time_in_kbjd[I], sap_lightcurve[I], "k-", alpha=0.5)
-    plt.text(time_in_kbjd[-1], sap_lightcurve[-1], " SAP", alpha=0.5)
-    plt.plot(time_in_kbjd[I], owl_lightcurve[I], "k-")
-    plt.text(time_in_kbjd[-1], owl_lightcurve[-1], " OWL")
-    plt.xlim(np.min(time_in_kbjd[I]), np.max(time_in_kbjd[I]) + 4.)
-    plt.ylim(0.99 * np.min(sap_lightcurve[I]), 1.01 * np.max(sap_lightcurve[I]))
+    plt.text(time_in_kbjd[0], sap_lightcurve[0], "SAP-", alpha=0.5, ha="right")
+    plt.text(time_in_kbjd[-1], sap_lightcurve[-1], "-SAP", alpha=0.5)
+    shift = np.min(sap_lightcurve[I]) - np.median(sap_lightcurve[I])
+    plt.plot(time_in_kbjd[I], shift + owl_lightcurve[I], "k-")
+    plt.text(time_in_kbjd[0], shift + owl_lightcurve[0], "OWL-", ha="right")
+    plt.text(time_in_kbjd[-1], shift + owl_lightcurve[-1], "-OWL")
+    shift = 2. * shift
+    plt.plot(time_in_kbjd[I], shift + opwl_lightcurve[I], "k-")
+    plt.text(time_in_kbjd[0], shift + opwl_lightcurve[0], "OPWL-", ha="right")
+    plt.text(time_in_kbjd[-1], shift + opwl_lightcurve[-1], "-OPWL")
+    plt.xlim(np.min(time_in_kbjd[I]) - 4., np.max(time_in_kbjd[I]) + 4.) # MAGIC
+    plt.ylim(0.99 * np.min(shift + opwl_lightcurve[I]), 1.01 * np.max(sap_lightcurve[I])) # MAGIC
     plt.xlabel("time (KBJD in days)")
     plt.ylabel("flux (in Kepler SAP ADU)")
     savefig("%s_photometry.png" % prefix)
@@ -334,6 +375,7 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     return time_in_kbjd, sap_lightcurve, owl_lightcurve
 
 if __name__ == "__main__":
+    np.random.seed(42)
     kicid = 3335426
     quarter = 5
     t, s, o = photometer_and_plot(kicid, quarter, fake=True)
