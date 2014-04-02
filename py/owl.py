@@ -91,20 +91,18 @@ def get_epoch_mask(pixel_mask, kplr_mask):
     epoch_mask[(foo == bar)] = 1
     return epoch_mask
 
-def get_means_and_covariances(intensities, kplr_mask, clip_mask=None, fluxes=None):
+def get_means_and_covariances(intensities, kplr_mask, clip_mask=None):
     """
     ## inputs:
     * `intensities` - what `kplr` calls `FLUX` from the `target_pixel_file`
     * `kplr_mask` - what `kplr` calls `hdu[2].data` from the same
     * `clip_mask` [optional] - read the source, Luke
-    * `fluxes` [optional] - current beliefs about stellar flux at each epoch
 
     ## outputs:
     * `means` - one-d array of means for `kplr_mask > 0` pixels
     * `covars` - two-d array of covariances for same
 
     ## bugs:
-    * The `fluxes` input is not documented here or in the paper.
     * Only deals with unit and zero weights, nothing else.
     * Uses `for` loops!
     * Needs more information in this comment header.
@@ -114,11 +112,7 @@ def get_means_and_covariances(intensities, kplr_mask, clip_mask=None, fluxes=Non
     epoch_mask = get_epoch_mask(pixel_mask, kplr_mask)
     if clip_mask is not None:
         epoch_mask *= clip_mask
-    if fluxes is None:
-        fluxes = np.ones(nt)
-    print "epoch_mask", np.sum(epoch_mask)
-    print "fluxes", np.min(fluxes), np.max(fluxes)
-    means = np.sum(intensities[epoch_mask > 0, :, :], axis=0) / np.sum(fluxes[epoch_mask > 0])
+    means = np.mean(intensities[epoch_mask > 0, :, :], axis=0)
     covars = np.zeros((ny, nx, ny, nx))
     for ii in range(nx):
         for jj in range(ny):
@@ -126,7 +120,7 @@ def get_means_and_covariances(intensities, kplr_mask, clip_mask=None, fluxes=Non
                 for ll in range(ny):
                     if (kplr_mask[jj, ii] > 0) and (kplr_mask[ll, kk] > 0) and (covars[jj, ii, ll, kk] == 0):
                         mask = epoch_mask * pixel_mask[:, jj, ii] * pixel_mask[:, ll, kk]
-                        data = (intensities[:, jj, ii] - fluxes * means[jj, ii]) * (intensities[:, ll, kk] - fluxes * means[ll, kk])
+                        data = (intensities[:, jj, ii] - means[jj, ii]) * (intensities[:, ll, kk] - means[ll, kk])
                         cc = np.mean(data[(mask > 0)])
                         assert np.isfinite(cc)
                         covars[jj, ii, ll, kk] = cc
@@ -167,7 +161,7 @@ def get_sigma_clip_mask(intensities, means, covars, kplr_mask, nsigma=4.0):
     mask[chi_squareds < ndof + nsigma * np.sqrt(2. * ndof)] = 1.
     return mask
 
-def get_robust_means_and_covariances(intensities, kplr_mask, clip_mask=None, fluxes=None):
+def get_robust_means_and_covariances(intensities, kplr_mask, clip_mask=None):
     """
     Iterative sigma-clipping version of `get_means_and_covariances()`.
 
@@ -175,10 +169,10 @@ def get_robust_means_and_covariances(intensities, kplr_mask, clip_mask=None, flu
     * Magic number 5 hard-coded.
     * Needs more information in this comment header.
     """
-    means, covars = get_means_and_covariances(intensities, kplr_mask, fluxes=fluxes)
+    means, covars = get_means_and_covariances(intensities, kplr_mask)
     for i in range(5): # MAGIC
         clip_mask = get_sigma_clip_mask(intensities, means, covars, kplr_mask)
-        means, covars = get_means_and_covariances(intensities, kplr_mask, clip_mask, fluxes=fluxes)
+        means, covars = get_means_and_covariances(intensities, kplr_mask, clip_mask)
     return means, covars
 
 def get_owl_weights(means, covars):
@@ -247,17 +241,22 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     sap_lightcurve = np.sum(np.sum(fubar_intensities * sap_weight_img[None, :, :], axis=2), axis=1)
 
     # get OWL weights and photometry
-    means, covars = get_robust_means_and_covariances(intensities, kplr_mask, fluxes=sap_lightcurve)
+    means, covars = get_robust_means_and_covariances(intensities, kplr_mask)
     owl_weights = get_owl_weights(means, covars)
-    print owl_weights
-    assert False
     owl_weights *= np.sum(sap_weights * means) / np.sum(owl_weights * means)
     owl_weight_img = reformat_as_image(owl_weights)
     owl_lightcurve = np.sum(np.sum(fubar_intensities * owl_weight_img[None, :, :], axis=2), axis=1)
+
+    # get OPWL weights and photometry
+    opwl_weights = get_opwl_weights(means, covars, owl_weights=owl_weights)
+    opwl_weights *= np.sum(sap_weights * means) / np.sum(opwl_weights * means)
+    opwl_weight_img = reformat_as_image(opwl_weights)
+    opwl_lightcurve = np.sum(np.sum(fubar_intensities * opwl_weight_img[None, :, :], axis=2), axis=1)
     print "SAP", np.min(sap_lightcurve), np.max(sap_lightcurve)
     print "OWL", np.min(owl_lightcurve), np.max(owl_lightcurve)
+    print "OPWL", np.min(opwl_lightcurve), np.max(opwl_lightcurve)
     if not makeplots:
-        return time_in_kbjd, sap_lightcurve, owl_lightcurve
+        return time_in_kbjd, sap_lightcurve, owl_lightcurve, opwl_lightcurve
 
     # get two eigenvectors (for plotting)
     eig = np.linalg.eig(covars)
@@ -272,8 +271,9 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     covar_diag_img = reformat_as_image(np.diag(covars))
     eigvec0_img = reformat_as_image(eigvec0)
     eigvec1_img = reformat_as_image(eigvec1)
-    owl_frac_contribs_img = owl_weight_img * mean_img
     sap_frac_contribs_img = sap_weight_img * mean_img
+    owl_frac_contribs_img = owl_weight_img * mean_img
+    opwl_frac_contribs_img = opwl_weight_img * mean_img
 
     # make images plot
     plt.gray()
@@ -281,36 +281,36 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     plt.clf()
     plt.title(title)
     vmax = np.percentile(intensities[:, kplr_mask > 0], 99.)
-    vmin = -0.1 * vmax
+    vmin = -1. * vmax
     for ii, sp in [(0, 331), (nt / 2, 332), (nt-1, 333)]:
         plt.subplot(sp)
-        plt.imshow(intensities[ii], interpolation="nearest", origin="lower", vmin=vmin, vmax=vmax)
+        plt.imshow(intensities[ii], interpolation="nearest", vmin=vmin, vmax=vmax)
         plt.title("exposure %d" % ii)
         plt.colorbar()
     plt.subplot(334)
-    plt.imshow(np.median(sap_lightcurve) * mean_img, interpolation="nearest", origin="lower", vmin=vmin, vmax=vmax)
+    plt.imshow(np.median(sap_lightcurve) * mean_img, interpolation="nearest", vmin=vmin, vmax=vmax)
     plt.title(r"mean $\hat{\mu}$")
     plt.colorbar()
     plt.subplot(335)
-    plt.imshow(np.log10(covar_diag_img), interpolation="nearest", origin="lower")
+    plt.imshow(np.log10(covar_diag_img), interpolation="nearest")
     plt.title(r"log diag($\hat{C})$")
     plt.colorbar()
     plt.subplot(336)
-    plt.imshow(eigvec0_img, interpolation="nearest", origin="lower")
+    plt.imshow(eigvec0_img, interpolation="nearest")
     plt.title(r"dominant $\hat{C}$ eigenvector")
     plt.colorbar()
-    vmin = -0.12
     vmax = 1.2
+    vmin = -1. * vmax
     plt.subplot(337)
-    plt.imshow(1. * sap_weight_img, interpolation="nearest", origin="lower", vmin=vmin, vmax=vmax)
+    plt.imshow(1. * sap_weight_img, interpolation="nearest", vmin=vmin, vmax=vmax)
     plt.title(r"SAP weights")
     plt.colorbar()
     plt.subplot(338)
-    plt.imshow(owl_weight_img, interpolation="nearest", origin="lower", vmin=vmin, vmax=vmax)
+    plt.imshow(owl_weight_img, interpolation="nearest", vmin=vmin, vmax=vmax)
     plt.title(r"OWL weights")
     plt.colorbar()
     plt.subplot(339)
-    plt.imshow(owl_weight_img * mean_img, interpolation="nearest", origin="lower")
+    plt.imshow(owl_weight_img * mean_img, interpolation="nearest")
     plt.title(r"OWL mean contribs")
     plt.colorbar()
     savefig("%s_images.png" % prefix)
@@ -337,6 +337,8 @@ if __name__ == "__main__":
     kicid = 3335426
     quarter = 5
     t, s, o = photometer_and_plot(kicid, quarter, fake=True)
+
+if False:
     t, s, o = photometer_and_plot(kicid, quarter)
     kicid = 8692861
     t, s, o = photometer_and_plot(kicid, quarter)
