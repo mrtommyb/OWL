@@ -432,16 +432,16 @@ In the end, the highest-weight pixels do not all deliver significant signal;
   which gives a sense of where the bulk of the photometric signal is coming from.
 
 \figurename~\ref{fig:results} shows the \project{Kepler} SAP flux for KIC~3335426,
-  and some standard heurisitic detrendings thereof.
-These detrendings are created by filtering or fitting-and-subtracting
-  the SAP photometry;
-  they remove intrinsic stellar variability and create artificial epoch-to-epoch correlations
-  in the photometric noise.
-\figurename~\ref{fig:results} shows the the OWL photometry
-  (and some variants discussed below).
+  along with the OWL and some variants thereof (described below).
 The OWL photometry very effectively  detrends the data,
   even though it involves \emph{no explicit detrending}.
-That is, it is just a soft-aperture aperture photometry, identical from epoch to epoch.
+By ``detrending'' we mean filtering or fitting-and-subtracting
+  the SAP photometry (as in the \project{Kepler} PDC or median-filtered photometry).
+Detrendings remove intrinsic stellar variability and create artificial epoch-to-epoch correlations
+  in the photometric noise;
+  they are the bane of exoplaneteers.
+That is, the OWL is just a soft-aperture aperture photometry, identical from epoch to epoch
+  that obviates detrending.
 It is simply the weighting of the pixels that optimizes the empirical output signal-to-noise.
 
 In detail, the OWL photometry is a tiny bit noisier in an epoch-to-epoch sense
@@ -489,7 +489,15 @@ That is, the saturated pixels do not show much empirical variance,
   and get overly large weight in the optimization.
 
 For these saturated cases we devised a Tweaked Simple Aperture (TSA) photometry,
-  that 
+  which capitalizes on the clever apertures chosen by the \project{Kepler} team
+  to capture saturated signal:
+In the TSA, we lump together the SAP-coadded pixels into a single super-pixel.
+We then perform the OWL methodology,
+  but now with the list of pixels not being the full list of pixels,
+  but rather the super-pixel plus the list of all the non-SAP pixels in the patch.
+The TSA is a generalization of the OWL to non-square or non-uniform pixels.
+
+We show the TSA results in \figurename~HOGG
 
 \section{Comparison stars}
 
@@ -508,6 +516,9 @@ We are pursuing this in a separate project;
 \section{Discussion}
 
 What happened?
+We permitted the aperture to be soft.
+We optimized the aperture weighting.
+We obviated detrending forever.
 
 In the results shown in \figurename~\ref{fig:results},
   the instrumental effects on the lightcurve were removed beautifully by the OWL,
@@ -558,7 +569,7 @@ One way to see this is to note that there is no obvious or simple generalization
   to the case of multi-instrument or multi-band imaging
   (where pixel scale or bandpass vary from epoch to epoch).
 
-The OWL method depends very strongly on good background subtraction.
+The OWL, OPW, and TSA methods all depend very strongly on good background subtraction.
 The reason is that it seeks to obtain high expectation value and low variance.
 If there is a constant background that hasn't been subtracted,
   the weights will choose to add in a lot of constant background
@@ -657,7 +668,7 @@ The bottom-right panels shows the OWL weights times the empirical mean;
 
 \clearpage
 \begin{figure}
-\includegraphics[width=\textwidth]{kic_03335426_images_opwl.png}
+\includegraphics[width=\textwidth]{kic_03335426_images_opw.png}
 \caption{
 The same as the bottom row of \figurename~\ref{fig:images}
   but for the optimized positive-weight (OPW) photometry.
@@ -670,9 +681,9 @@ In this case, the positivity constraint does not make much difference.
 \includegraphics[width=\textwidth]{kic_03335426_photometry.png}
 \caption{
 The \project{Kepler} SAP flux,
-  the optimized-weight linear (OWL) photometry,
-  the optimized positive-weight (OPW) photometry,
-  and the tweaked simple aperture (TSA) photometry,
+  the Optimized-Weight Linear (OWL) photometry,
+  the Optimized Positive-Weight (OPW) photometry,
+  and the Tweaked Simple Aperture (TSA) photometry,
   all for quarter 5 of KIC~3335426.
 \label{fig:results}}
 \end{figure}
