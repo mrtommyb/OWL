@@ -56,12 +56,12 @@ def get_fake_data(nt, ny=5, nx=7):
     """
     xc, yc = 3. + 1. / 7., 2. + 4. / 9. # MAGIC NUMBERS
     psf_sigma2 = 1.1 * 1.1 # MAGIC NUMBER (in pixels * pixels)
-    psf_sigma2 = psf_sigma2 + 1. * np.arange(nt) / nt
-    flux = 10000. # MAGIC NUMBER (in ADU per image)
-    flux = flux + 0.001 * flux * np.sin(np.arange(nt) / 50. )
-    gain = 0.01 # MAGIC NUMBER (in electrons per ADU)
+    psf_sigma2 = psf_sigma2 + 0.01 * np.arange(nt) / nt
+    flux = 100000. # MAGIC NUMBER (in ADU per image)
+    flux = flux + 0.0 * flux * np.sin(np.arange(nt) / 50. )
+    gain = 0.001 # MAGIC NUMBER (in electrons per ADU)
     fake_sky_noise = np.sqrt(1.) * np.random.normal(size = (nt, ny, nx)) # MAGIC NUMBER in ADU per pixel per image
-    xc = xc + 0.3 * np.arange(nt) / nt
+    xc = xc + 0.01 * np.arange(nt) / nt
     yc = yc + np.zeros(nt)
     xg, yg = np.meshgrid(range(nx), range(ny))
     fake_mean = flux[:, None, None] * evaluate_circular_two_d_gaussian(xg[None, :, :] - xc[:, None, None],
@@ -200,6 +200,13 @@ def get_opw_weights(means, covars, owl_weights=None):
     ln_weights = op.fmin(get_objective_function, start_ln_weights, args=(means, covars, True))
     return np.exp(ln_weights)
 
+def get_tsa_intensities_and_mask(intensities, kplr_mask):
+    tsa_intensities = np.hstack((np.sum(intensities[:, kplr_mask == 3], axis=1)[:, None],
+                                 intensities[:, kplr_mask == 1]))
+    tsa_mask = np.ones_like(tsa_intensities[0])
+    tsa_mask[0] = 3
+    return tsa_intensities[:,:,None], tsa_mask[:, None]
+
 def savefig(fn):
     print "writing file " + fn
     plt.savefig(fn)
@@ -274,6 +281,18 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     print "SAP", np.min(sap_lightcurve), np.max(sap_lightcurve)
     print "OWL", np.min(owl_lightcurve), np.max(owl_lightcurve)
     print "OPW", np.min(opw_lightcurve), np.max(opw_lightcurve)
+
+    # fire up the TSA
+    tsa_intensities, tsa_mask = get_tsa_intensities_and_mask(intensities, kplr_mask)
+    tsa_means, tsa_covars = get_robust_means_and_covariances(tsa_intensities, tsa_mask)
+    tsa_weights = get_owl_weights(tsa_means, tsa_covars)
+    tsa_weights *= np.sum(sap_weights * means) / np.sum(tsa_weights * tsa_means)
+    tsa_weight_img = np.zeros_like(intensities[0])
+    tsa_weight_img[kplr_mask == 3] = tsa_weights[0]
+    tsa_weight_img[kplr_mask == 1] = tsa_weights[1:]
+    tsa_lightcurve = np.sum(np.sum(fubar_intensities * tsa_weight_img[None, :, :], axis=2), axis=1)
+    print "TSA", np.min(tsa_lightcurve), np.max(tsa_lightcurve)
+
     if not makeplots:
         return time_in_kbjd, sap_lightcurve, owl_lightcurve, opw_lightcurve
 
@@ -352,6 +371,24 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     plt.colorbar()
     savefig("%s_images_opw.png" % prefix)
 
+    # make OPW plot REPEATED CODE
+    plt.figure(figsize=(fsf * nx, fsf * ny / 3.)) # MAGIC
+    plt.clf()
+    plt.title(title)
+    plt.subplot(131)
+    plt.imshow(sap_weight_img, interpolation="nearest", vmin=vmin, vmax=vmax)
+    plt.title(r"SAP weights")
+    plt.colorbar()
+    plt.subplot(132)
+    plt.imshow(tsa_weight_img, interpolation="nearest", vmin=vmin, vmax=vmax)
+    plt.title(r"TSA weights")
+    plt.colorbar()
+    plt.subplot(133)
+    plt.imshow(tsa_weight_img * mean_img, interpolation="nearest", vmin=-np.max(tsa_weight_img * mean_img))
+    plt.title(r"TSA mean contribs")
+    plt.colorbar()
+    savefig("%s_images_tsa.png" % prefix)
+
     # make photometry plot
     plt.figure(figsize=(fsf * nx, 0.5 * fsf * nx))
     plt.clf()
@@ -361,7 +398,7 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     plt.plot(time_in_kbjd[I], sap_lightcurve[I], "k-", alpha=0.5)
     plt.text(time_in_kbjd[0], sap_lightcurve[0], "SAP-", alpha=0.5, ha="right")
     plt.text(time_in_kbjd[-1], sap_lightcurve[-1], "-SAP", alpha=0.5)
-    shift1 = 0.25 * (np.max(sap_lightcurve[I]) - np.median(sap_lightcurve[I]))
+    shift1 = 0.
     plt.plot(time_in_kbjd[I], shift1 + owl_lightcurve[I], "k-")
     plt.text(time_in_kbjd[0], shift1 + owl_lightcurve[0], "OWL-", ha="right")
     plt.text(time_in_kbjd[-1], shift1 + owl_lightcurve[-1], "-OWL")
@@ -369,6 +406,10 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     plt.plot(time_in_kbjd[I], shift2 + opw_lightcurve[I], "k-")
     plt.text(time_in_kbjd[0], shift2 + opw_lightcurve[0], "OPW-", ha="right")
     plt.text(time_in_kbjd[-1], shift2 + opw_lightcurve[-1], "-OPW")
+    shift3 = 0.5 * (np.min(sap_lightcurve[I]) - np.median(sap_lightcurve[I]))
+    plt.plot(time_in_kbjd[I], shift3 + tsa_lightcurve[I], "k-")
+    plt.text(time_in_kbjd[0], shift3 + tsa_lightcurve[0], "TSA-", ha="right")
+    plt.text(time_in_kbjd[-1], shift3 + tsa_lightcurve[-1], "-TSA")
     plt.xlim(np.min(time_in_kbjd[I]) - 4., np.max(time_in_kbjd[I]) + 4.) # MAGIC
     plt.xlabel("time (KBJD in days)")
     plt.ylabel("flux (in Kepler SAP ADU)")
@@ -381,6 +422,8 @@ if __name__ == "__main__":
     kicid = 3335426
     quarter = 5
     t, s, o = photometer_and_plot(kicid, quarter, fake=True)
+
+if False:
     t, s, o = photometer_and_plot(kicid, quarter)
     kicid = 8692861
     t, s, o = photometer_and_plot(kicid, quarter)
