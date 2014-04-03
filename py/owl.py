@@ -285,7 +285,7 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     # fire up the TSA
     tsa_intensities, tsa_mask = get_tsa_intensities_and_mask(intensities, kplr_mask)
     tsa_means, tsa_covars = get_robust_means_and_covariances(tsa_intensities, tsa_mask)
-    tsa_weights = get_owl_weights(tsa_means, tsa_covars)
+    tsa_weights = get_opw_weights(tsa_means, tsa_covars)
     tsa_weights *= np.sum(sap_weights * means) / np.sum(tsa_weights * tsa_means)
     tsa_weight_img = np.zeros_like(intensities[0])
     tsa_weight_img[kplr_mask == 3] = tsa_weights[0]
@@ -422,8 +422,6 @@ if __name__ == "__main__":
     kicid = 3335426
     quarter = 5
     t, s, o = photometer_and_plot(kicid, quarter, fake=True)
-
-if False:
     t, s, o = photometer_and_plot(kicid, quarter)
     kicid = 8692861
     t, s, o = photometer_and_plot(kicid, quarter)
