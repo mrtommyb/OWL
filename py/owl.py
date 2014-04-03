@@ -418,11 +418,18 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     return time_in_kbjd, sap_lightcurve, owl_lightcurve
 
 if __name__ == "__main__":
+    import sys
     np.random.seed(42)
-    kicid = 3335426
     quarter = 5
-    t, s, o = photometer_and_plot(kicid, quarter, fake=True)
+    kicid = 3335426
+    if len(sys.argv) > 1:
+        kicid = int(sys.argv[1])
+    if len(sys.argv) > 2:
+        quarter = int(sys.argv[2])
     t, s, o = photometer_and_plot(kicid, quarter)
+
+if False:
+    t, s, o = photometer_and_plot(kicid, quarter, fake=True)
     kicid = 8692861
     t, s, o = photometer_and_plot(kicid, quarter)
     kicid = 3223000
