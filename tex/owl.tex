@@ -363,12 +363,16 @@ That is, we will do something like
   \\
   \hat{C} &\leftarrow& \frac{1}{N-1}\,\sum_{n=1}^N [y_n - \hat{\mu}]\,\transpose{[y_n - \hat{\mu}]}
   \\
+  \hat{\Sigma}^2 &=& \frac{[\transpose{w}\, \hat{\mu}]^2}{\transpose{w}\, \hat{C}\, w}
+  \\
   \hat{w} &\leftarrow& \inverse{\hat{C}}\, \hat{\mu}
   \quad ,
 \end{eqnarray}
   where the operations are averages over the epochs,
   the vector product is the outer or tensor product,
-  and technically we require $N \gg D$
+  $\hat{\Sigma}^2$ is the \emph{empirical} signal-to-noise,
+  and $\hat{w}$ are the weights that maximize it.
+Technically we require $N \gg D$
   (far more epochs than there are pixels in the tiny patch).
 It turns out that with small modifications
   (to make the means robust to outliers)
@@ -468,13 +472,12 @@ In these cases, the largest variance can be from the star itself;
 
 The Optimized Positive-Weight (OPW) photometry works still at the optimum of
 \begin{eqnarray}
-\Sigma^2 &=& \frac{[\transpose{w}\, \hat{\mu}]^2}{\transpose{w}\, \hat{C}\, w}
+\hat{\Sigma}^2 &=& \frac{[\transpose{w}\, \hat{\mu}]^2}{\transpose{w}\, \hat{C}\, w}
 \quad ,
 \end{eqnarray}
 but now subject to the constraint that every element of $w$ must be non-negative.
 \figurename~\ref{fig:images_opw} and \figurename~\ref{fig:results}
-\includegraphics[width=\textwidth]{kic_03335426_photometry.png}
- shows the results of the OPW for KIC~3335426,
+ show the results of the OPW for KIC~3335426,
  and \figurename~\ref{fig:results_variable} show the results of the OPW
  for a more variable star.
 The positivity constraint seems salutory when the target star is somewhat variable.
