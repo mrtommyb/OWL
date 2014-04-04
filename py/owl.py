@@ -382,9 +382,9 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
 
     for TLA, wimg, suffix in [("OPW", opw_weight_img, "opw"),
                               ("TSA", tsa_weight_img, "tsa"),
-                              ("DOWL", tsa_weight_img, "dowl"),
-                              ("DOPW", tsa_weight_img, "dopw"),
-                              ("DTSA", tsa_weight_img, "dtsa")]:
+                              ("DOWL", dowl_weight_img, "dowl"),
+                              ("DOPW", dopw_weight_img, "dopw"),
+                              ("DTSA", dtsa_weight_img, "dtsa")]:
     # make OPW plot
         plt.figure(figsize=(fsf * nx, fsf * ny / 3.)) # MAGIC
         plt.clf()
