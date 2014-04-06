@@ -236,14 +236,14 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
         nt, ny, nx = intensities.shape
         time_in_kbjd = np.arange(len(intensities)) / 24. / 2.
     else:
-        prefix = "kic_%08d" % (kicid, )
-        title = "KIC %08d" % (kicid, )
+        prefix = "kic_%08d_%02d" % (kicid, quarter)
+        title = "KIC %08d Q%02d" % (kicid, quarter)
         tpf = get_target_pixel_file(kicid, quarter)
         with tpf.open() as hdu:
             table = hdu[1].data
             kplr_mask = hdu[2].data
         time_in_kbjd = table["TIME"]
-        # raw_cnts = table["RAW_CNTS"]
+        # raw_cnts = table["RAW_CNTS"] # not trying this as yet
         intensities = table["FLUX"]
         nt, ny, nx = intensities.shape
         if makeplots:
@@ -464,9 +464,11 @@ if __name__ == "__main__":
     t, s, o = photometer_and_plot(kicid, quarter)
     if len(sys.argv) == 1:
         t, s, o = photometer_and_plot(kicid, quarter, fake=True)
-        kicid = 8692861
-        t, s, o = photometer_and_plot(kicid, quarter)
-        kicid = 3223000
-        t, s, o = photometer_and_plot(kicid, quarter)
-        kicid = 10295224
-        t, s, o = photometer_and_plot(kicid, quarter)
+    kicid = 8692861
+    t, s, o = photometer_and_plot(kicid, quarter)
+
+if False:
+    kicid = 3223000 # saturated
+    t, s, o = photometer_and_plot(kicid, quarter)
+    kicid = 10295224 # saturated
+    t, s, o = photometer_and_plot(kicid, quarter)
