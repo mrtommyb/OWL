@@ -464,8 +464,8 @@ if __name__ == "__main__":
     t, s, o = photometer_and_plot(kicid, quarter)
     if len(sys.argv) == 1:
         t, s, o = photometer_and_plot(kicid, quarter, fake=True)
-    kicid = 8692861
-    t, s, o = photometer_and_plot(kicid, quarter)
+        kicid = 8692861
+        t, s, o = photometer_and_plot(kicid, quarter)
 
 if False:
     kicid = 3223000 # saturated
