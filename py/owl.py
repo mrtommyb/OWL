@@ -466,6 +466,10 @@ if __name__ == "__main__":
         t, s, o = photometer_and_plot(kicid, quarter, fake=True)
         kicid = 8692861
         t, s, o = photometer_and_plot(kicid, quarter)
+        kicid = 1026474 # intrinsic variable
+        t, s, o = photometer_and_plot(kicid, quarter)
+        kicid = 1872885 # intrinsic variable
+        t, s, o = photometer_and_plot(kicid, quarter)
 
 if False:
     kicid = 3223000 # saturated
