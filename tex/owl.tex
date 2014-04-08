@@ -458,6 +458,29 @@ This is coming from the fact that the OWL weights are trying to suppress the dom
 The focus on the biggest variance components limits what the OWL can do.
 We return to this issue and perform a relevant experiment in the Discussion below.
 
+\section{Structure of the problem}
+
+HOGG:
+Something about what is really happening (trying to zero out dominant eigenvectors).
+
+HOGG:
+Something about the lack of prior knowledge:
+\begin{itemize}
+\item
+We aren't assuming \emph{anything} about the sources of variance.
+\item
+We aren't doing \emph{anything} about intrinsic variability of the source.
+\item
+Some intrinsic variability we do care about, some we don't.
+\item
+We aren't using the time-ordering of the data at all;
+  different effects happen on different time scales.
+\item
+We aren't putting in any prior knowledge about what the $w$ image ought to look like
+  in sane cases.
+\end{itemize}
+All these issues turn into decisions or knobs that we can turn in variations.
+
 \section{Variations on the OWL}
 
 After running the OWL on multiple \project{Kepler} targets,
@@ -501,7 +524,22 @@ We then perform the OWL methodology,
   but rather the super-pixel plus the list of all the non-SAP pixels in the patch.
 The TSA is a generalization of the OWL to non-square or non-uniform pixels.
 
-We show the TSA results in \figurename~HOGG
+We show the TSA results in \figurename~\ref{fig:results}.
+It seems to be producing better epoch-to-epoch scatter;
+  this might because it represents an even stronger regularization of the weight image $\hat{w}$.
+
+HOGG:
+In yet another variation, we estimated $\hat{\mu}$ and $\hat{C}$ using not the
+  straight-up data, but the \emph{differences} between each data point and
+  its time-ordered neighbor.
+Again with the sigma clipping.
+This leads to the DOWL, DOPW, and DTSA, shown in \figurename~\ref{fig:dresults}.
+
+HOGG:
+In yet another variation, we fix the aperture to be a circular top-hat,
+  and only permit its center and radius to be adjusted in the optimization...
+
+NOTE TO JASON WRIGHT: WE CAN HELP YOU!
 
 \section{Comparison stars}
 
@@ -693,6 +731,18 @@ The \project{Kepler} SAP flux,
   and the Tweaked Simple Aperture (TSA) photometry,
   all for quarter 5 of KIC~3335426.
 \label{fig:results}}
+\end{figure}
+
+\clearpage
+\begin{figure}
+\includegraphics[width=\textwidth]{../py/kic_03335426_05_diff_photometry.png}
+\caption{
+The \project{Kepler} SAP flux,
+  the Difference-Optimized-Weight Linear (DOWL) photometry,
+  the Difference-Optimized Positive-Weight (DOPW) photometry,
+  and the Difference-Tweaked Simple Aperture (DTSA) photometry,
+  all for quarter 5 of KIC~3335426.
+\label{fig:dresults}}
 \end{figure}
 
 \end{document}
