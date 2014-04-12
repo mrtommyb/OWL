@@ -480,6 +480,37 @@ We aren't putting in any prior knowledge about what the $w$ image ought to look 
   in sane cases.
 \end{itemize}
 All these issues turn into decisions or knobs that we can turn in variations.
+The variations will fall into two categories:
+We can change how we estimate the covariance matrix $C$,
+  or we can change how we constrain or regularize the weights $w$.
+
+On the covariance estimation, here are some basic ideas:
+\begin{itemize}
+\item
+Use local differences of pixel values instead of pixel values.
+\item
+Mix the dominant eigenvectors from the full set of pixel values
+  with the small-scale noise inferred from the local differences.
+\item
+Perform some kind of factor analysis that splits the variance into
+  ``diagonal'' and ``covariant'' parts.
+\item
+Use covariances across pixel patches from different stars
+  to identify extrinsic (rather than intrinsic)
+  sources of variances.
+\end{itemize}
+
+On the weight constraints and regularization, here are some basic ideas:
+\begin{itemize}
+\item
+Require non-negativity.
+\item
+Require smoothness.
+\item
+Require similarity to the SAP aperture or some other sensible aperture.
+\item
+Require that the aperture be a circular top-hat or a smoothed version of that.
+\end{itemize}
 
 \section{Variations on the OWL}
 
