@@ -10,6 +10,7 @@ Copyright 2014 Dan Foreman-Mackey and David W. Hogg.
 * Things called "flux" should be called "intensities".
 * Global variable with `API()`.
 * Barely tested, and there are copious x <-> y issues possible.
+* Figure sizes set by an insane robot.
 """
 
 if __name__ == '__main__':
@@ -298,7 +299,7 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
 
     # create and use differential covariances
     clip_mask = get_sigma_clip_mask(intensities, means, covars, kplr_mask) # need this to mask shit
-    diff_intensities = np.diff(intensities, axis=0)
+    diff_intensities = np.diff(intensities, axis=0) * np.sqrt(2.) # exercise for reader: WHY SQRT(2)?
     diff_means, diff_covars = get_robust_means_and_covariances(diff_intensities, kplr_mask, clip_mask)
     dowl_weights = get_owl_weights(means, diff_covars)
     dowl_weights *= np.sum(sap_weights * means) / np.sum(dowl_weights * means)
@@ -323,19 +324,31 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     dtsa_lightcurve = np.sum(np.sum(fubar_intensities * dtsa_weight_img[None, :, :], axis=2), axis=1)
     print "DTSA", np.min(dtsa_lightcurve), np.max(dtsa_lightcurve)
 
-    # get two eigenvectors (for plotting)
-    eig = np.linalg.eig(covars)
-    eigval = eig[0]
-    eigvec = eig[1]
-    II = (np.argsort(eigval))[::-1]
-    eigvec0 = eigvec[II[0]]
-    eigvec1 = eigvec[II[1]]
+    # get the eigenvalues and top eigenvector (for plotting)
+    for foo, cc in [("diff-", diff_covars), ("", covars)]:
+        eig = np.linalg.eig(cc)
+        eigval = eig[0]
+        eigvec = eig[1]
+        II = (np.argsort(eigval))[::-1]
+        eigval = eigval[II]
+        eigvec = eigvec[II]
+        eigvec0 = eigvec[0]
+        plt.figure(figsize=(fsf * nx, fsf * ny)) # MAGIC
+        plt.clf()
+        plt.title(title)
+        plt.plot(eigval, "ko")
+        plt.xlabel("%s$\hat{C}$ eigenvector index" % foo)
+        plt.ylabel("%s$\hat{C}$ eigenvalue (ADU$^2$)" % foo)
+        plt.xlim(-0.5, len(eigval) - 0.5)
+        plt.ylim(-0.1 * np.max(eigval), 1.1 * np.max(eigval))
+        plt.axhline(0., color="k", alpha=0.5)
+        savefig("%s_%seigenvalues.png" % (prefix, foo))
+    assert False
 
     # more reformatting
     mean_img = reformat_as_image(means)
     covar_diag_img = reformat_as_image(np.diag(covars))
     eigvec0_img = reformat_as_image(eigvec0)
-    eigvec1_img = reformat_as_image(eigvec1)
     sap_frac_contribs_img = sap_weight_img * mean_img
     owl_frac_contribs_img = owl_weight_img * mean_img
     opw_frac_contribs_img = opw_weight_img * mean_img
