@@ -29,16 +29,32 @@
 \newcommand{\Covar}[1]{\mathrm{Covar}[{#1}]}
 \include{vc}
 
+% affils
+\newcommand{\ccpp}{1}
+\newcommand{\mpia}{2}
+\newcommand{\contact}{3}
+\newcommand{\courant}{4}
+
 \begin{document}\sloppy\sloppypar
 
 \title{
   Optimized ``soft'' aperture photometry for time-domain astronomy
 }
 \author{
-  David W. Hogg,
-  Dan Foreman-Mackey,
-  Jonathan Goodman
+  David W. Hogg\altaffilmark{\ccpp,\mpia,\contact},
+  Dan Foreman-Mackey\altaffilmark{\mpia},
+  Jonathan Goodman\altaffilmark{\courant}
 }
+\altaffiltext{\ccpp}{%
+  Center for Cosmology and Particle Physics,
+  Department of Physics, New York University}
+\altaffiltext{\mpia}{%
+  Max-Planck-Institut f\"ur Astronomie}
+\altaffiltext{\contact}{%
+  \texttt{david.hogg@nyu.edu}}
+\altaffiltext{\courant}{%
+  Courant Institute for Mathematical Sciences,
+  New York University}
 
 \begin{abstract}
 Precise stellar photometry campaigns by \project{Kepler}, \project{Spitzer}, and \project{PanSTARRS}
@@ -63,7 +79,7 @@ We demonstrate enormous improvements to the \project{Kepler} photometry of isola
 The Optimized-Weight Linear (OWL) photometry produces photometric measurements so uniform that
   they outperform or obviate much more heuristic (and much more scientifically damaging)
   ``detrending'' schemes in many real cases.
-In particular, the OWL photometry minimizes instrument-induced variance
+In particular, OWL photometry minimizes instrument-induced variance
   but preserves all intrinsic stellar variability.
 All the OWL code is available under an open-source license.
 \end{abstract}
