@@ -465,16 +465,19 @@ That is, the OWL is just a soft-aperture aperture photometry, identical from epo
   that obviates detrending.
 It is simply the weighting of the pixels that optimizes the empirical output signal-to-noise.
 
-In detail, the OWL photometry is a tiny bit noisier in an epoch-to-epoch sense
+In detail, this first shot at OWL photometry is a tiny bit noisier
+  in an epoch-to-epoch sense
   than the SAP photometry,
-  despite being far better overall.
+  despite being far better in its overall trend.
 This is coming from the fact that the OWL weights are trying to suppress the dominant
   sources of variance,
   which are entering the data on long time-scales.
 The focus on the biggest variance components limits what the OWL can do.
-We return to this issue and perform a relevant experiment in the Discussion below.
+This opens up the next area of discussion:
+How do we estimate the covariance matrix $\hat{C}$ so that it is dominated by the sources of variance
+  that we most want to suppress?
 
-\section{Structure of the problem}
+\section{Estimation of the covariance tensor}
 
 HOGG:
 Something about what is really happening (trying to zero out dominant eigenvectors).
@@ -491,9 +494,6 @@ Some intrinsic variability we do care about, some we don't.
 \item
 We aren't using the time-ordering of the data at all;
   different effects happen on different time scales.
-\item
-We aren't putting in any prior knowledge about what the $w$ image ought to look like
-  in sane cases.
 \end{itemize}
 All these issues turn into decisions or knobs that we can turn in variations.
 The variations will fall into two categories:
@@ -516,6 +516,18 @@ Use covariances across pixel patches from different stars
   sources of variances.
 \end{itemize}
 
+HOGG:
+In yet another variation, we estimated $\hat{\mu}$ and $\hat{C}$ using not the
+  straight-up data, but the \emph{differences} between each data point and
+  its time-ordered neighbor.
+Again with the sigma clipping.
+This leads to the DOWL, DOPW, and DTSA, shown in \figurename~\ref{fig:dresults}.
+
+\section{Regularization of the weight vector}
+
+It is also the case, in the above, that
+  we aren't putting in any prior knowledge about what the $w$ image ought to look like
+  in sane cases.
 On the weight constraints and regularization, here are some basic ideas:
 \begin{itemize}
 \item
@@ -527,8 +539,6 @@ Require similarity to the SAP aperture or some other sensible aperture.
 \item
 Require that the aperture be a circular top-hat or a smoothed version of that.
 \end{itemize}
-
-\section{Variations on the OWL}
 
 After running the OWL on multiple \project{Kepler} targets,
   we developed a few intuitions that led to variations.
@@ -574,13 +584,6 @@ The TSA is a generalization of the OWL to non-square or non-uniform pixels.
 We show the TSA results in \figurename~\ref{fig:results}.
 It seems to be producing better epoch-to-epoch scatter;
   this might because it represents an even stronger regularization of the weight image $\hat{w}$.
-
-HOGG:
-In yet another variation, we estimated $\hat{\mu}$ and $\hat{C}$ using not the
-  straight-up data, but the \emph{differences} between each data point and
-  its time-ordered neighbor.
-Again with the sigma clipping.
-This leads to the DOWL, DOPW, and DTSA, shown in \figurename~\ref{fig:dresults}.
 
 HOGG:
 In yet another variation, we fix the aperture to be a circular top-hat,
