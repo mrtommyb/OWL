@@ -419,7 +419,7 @@ The patch of pixels has an associated mask,
   Simple Aperture Photometry (SAP).
 The weights used to generate the SAP photometry are constant within a quarter,
   and all snapped to either zero or unity.
-\figurename~\ref{fig:pixels} shows time histories for the 19 pixels relevant
+\figurename~\ref{fig:pixels} shows time histories for the $D=19$ pixels relevant
   to KIC~3335426 from the fifth quarter in which it was observed.
 Also shown are the three pixels that got unit weight in the SAP photometry for this star.
 
@@ -500,6 +500,7 @@ The variations will fall into two categories:
 We can change how we estimate the covariance matrix $C$,
   or we can change how we constrain or regularize the weights $w$.
 
+HOGG:
 On the covariance estimation, here are some basic ideas:
 \begin{itemize}
 \item
@@ -517,11 +518,25 @@ Use covariances across pixel patches from different stars
 \end{itemize}
 
 HOGG:
-In yet another variation, we estimated $\hat{\mu}$ and $\hat{C}$ using not the
-  straight-up data, but the \emph{differences} between each data point and
-  its time-ordered neighbor.
-Again with the sigma clipping.
-This leads to the DOWL, DOPW, and DTSA, shown in \figurename~\ref{fig:dresults}.
+\begin{eqnarray}
+\hat{C}_S & \leftarrow & \frac{1}{N-1}\,\sum_{n=1}^N [y_n - \hat{\mu}]_\perp\,\transpose{[y_n - \hat{\mu}]}_\perp
+\\
+x_\perp & \equiv & x - \sum_{k=1}^K u_k\,\transpose{u}_k\,x
+\\
+\delta_{kk'} &=& \transpose{u}_k\,u_{k'}
+\quad ,
+\end{eqnarray}
+where $S$ is a subspace of the full $D$-dimensional pixel space,
+  the $\perp$ subscripts indicate that the vectors have been projected into the subspace $S$,
+  the $u_k$ vectors are orthonormal unit vectors that span the complement of subspace $S$,
+  and $\delta_{kk'}$ is the integer (index) delta function.
+
+%% HOGG:
+%% In yet another variation, we estimated $\hat{\mu}$ and $\hat{C}$ using not the
+%%   straight-up data, but the \emph{differences} between each data point and
+%%   its time-ordered neighbor.
+%% Again with the sigma clipping.
+%% This leads to the DOWL, DOPW, and DTSA, shown in \figurename~\ref{fig:dresults}.
 
 \section{Regularization of the weight vector}
 
