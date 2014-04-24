@@ -173,6 +173,34 @@ def get_robust_means_and_covariances(intensities, kplr_mask, clip_mask=None):
         means, covars = get_means_and_covariances(intensities, kplr_mask, clip_mask)
     return means, covars
 
+def low_rankify(matrix, vectors):
+    """
+    ## bugs:
+    * Assumes vectors are *orthonormal*.
+    * Assumes `matrix` is square.
+    * Undocumented.
+    """
+    vv = np.atleast_2d(vectors)
+    projmatrix = np.eye(len(matrix)) - np.dot(np.transpose(vv), vv)
+    return np.dot(projmatrix, np.dot(matrix, projmatrix.T))
+
+def get_composite_covars(covars, diff_covars, means):
+    """
+    ## bugs:
+    * Undocumented!
+    * MAGIC 16.
+    """
+    vectors = means / np.sqrt(np.dot(means, means))
+    covars_long = low_rankify(covars, vectors)
+    eig = np.linalg.eig(covars_long)
+    indx = np.where(eig[0] > 16. * np.median(eig[0]))[0]
+    print indx
+    if len(indx) == 0:
+        return diff_covars
+    vectors = ((eig[1])[:,indx]).T
+    covars_short = low_rankify(diff_covars, vectors)
+    return covars_long + covars_short
+
 def get_owl_weights(means, covars):
     """
     needs no comment
@@ -198,7 +226,7 @@ def get_opw_weights(means, covars, owl_weights=None):
     if owl_weights is None:
         owl_weights = get_owl_weights(means, covars)
     start_ln_weights = np.log(np.abs(owl_weights))
-    ln_weights = op.fmin(get_objective_function, start_ln_weights, args=(means, covars, True))
+    ln_weights = op.fmin(get_objective_function, start_ln_weights, args=(means, covars, True), maxfun=np.Inf, maxiter=np.Inf)
     return np.exp(ln_weights)
 
 def get_tsa_intensities_and_mask(intensities, kplr_mask):
@@ -299,14 +327,14 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
 
     # create and use differential covariances
     clip_mask = get_sigma_clip_mask(intensities, means, covars, kplr_mask) # need this to mask shit
-    diff_intensities = np.diff(intensities, axis=0) * np.sqrt(2.) # exercise for reader: WHY SQRT(2)?
+    diff_intensities = np.diff(intensities, axis=0) / np.sqrt(2.) # exercise for reader: WHY SQRT(2)?
     diff_means, diff_covars = get_robust_means_and_covariances(diff_intensities, kplr_mask, clip_mask)
     dowl_weights = get_owl_weights(means, diff_covars)
     dowl_weights *= np.sum(sap_weights * means) / np.sum(dowl_weights * means)
     dowl_weight_img = reformat_as_image(dowl_weights)
     dowl_lightcurve = np.sum(np.sum(fubar_intensities * dowl_weight_img[None, :, :], axis=2), axis=1)
     print "DOWL", np.min(dowl_lightcurve), np.max(dowl_lightcurve)
-    dopw_weights = get_opw_weights(means, diff_covars, owl_weights=owl_weights)
+    dopw_weights = get_opw_weights(means, diff_covars, owl_weights=dowl_weights)
     dopw_weights *= np.sum(sap_weights * means) / np.sum(dopw_weights * means)
     dopw_weight_img = reformat_as_image(dopw_weights)
     dopw_lightcurve = np.sum(np.sum(fubar_intensities * dopw_weight_img[None, :, :], axis=2), axis=1)
@@ -323,6 +351,19 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
     dtsa_weight_img[kplr_mask == 1] = dtsa_weights[1:]
     dtsa_lightcurve = np.sum(np.sum(fubar_intensities * dtsa_weight_img[None, :, :], axis=2), axis=1)
     print "DTSA", np.min(dtsa_lightcurve), np.max(dtsa_lightcurve)
+
+    # create and use compound covariances
+    comp_covars = get_composite_covars(covars, diff_covars, means)
+    cowl_weights = get_owl_weights(means, comp_covars)
+    cowl_weights *= np.sum(sap_weights * means) / np.sum(cowl_weights * means)
+    cowl_weight_img = reformat_as_image(cowl_weights)
+    cowl_lightcurve = np.sum(np.sum(fubar_intensities * cowl_weight_img[None, :, :], axis=2), axis=1)
+    print "COWL", np.min(cowl_lightcurve), np.max(cowl_lightcurve)
+    copw_weights = get_opw_weights(means, comp_covars, owl_weights=cowl_weights)
+    copw_weights *= np.sum(sap_weights * means) / np.sum(copw_weights * means)
+    copw_weight_img = reformat_as_image(copw_weights)
+    copw_lightcurve = np.sum(np.sum(fubar_intensities * copw_weight_img[None, :, :], axis=2), axis=1)
+    print "COPW", np.min(copw_lightcurve), np.max(copw_lightcurve)
 
     # get the eigenvalues and top eigenvector (for plotting)
     for foo, cc in [("diff-", diff_covars), ("", covars)]:
@@ -343,7 +384,6 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
         plt.ylim(-0.1 * np.max(eigval), 1.1 * np.max(eigval))
         plt.axhline(0., color="k", alpha=0.5)
         savefig("%s_%seigenvalues.png" % (prefix, foo))
-    assert False
 
     # more reformatting
     mean_img = reformat_as_image(means)
@@ -397,7 +437,9 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
                               ("TSA", tsa_weight_img, "tsa"),
                               ("DOWL", dowl_weight_img, "dowl"),
                               ("DOPW", dopw_weight_img, "dopw"),
-                              ("DTSA", dtsa_weight_img, "dtsa")]:
+                              ("DTSA", dtsa_weight_img, "dtsa"),
+                              ("COWL", cowl_weight_img, "cowl"),
+                              ("COPW", copw_weight_img, "copw")]:
     # make OPW plot
         plt.figure(figsize=(fsf * nx, fsf * ny / 3.)) # MAGIC
         plt.clf()
@@ -417,50 +459,36 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
         savefig("%s_images_%s.png" % (prefix, suffix))
 
     # make photometry plot
-    plt.figure(figsize=(fsf * nx, 0.5 * fsf * nx))
-    plt.clf()
-    plt.title(title)
-    clip_mask = get_sigma_clip_mask(intensities, means, covars, kplr_mask)
-    I = (epoch_mask > 0) * (clip_mask > 0)
-    plt.plot(time_in_kbjd[I], sap_lightcurve[I], "k-", alpha=0.5)
-    plt.text(time_in_kbjd[0], sap_lightcurve[0], "SAP-", alpha=0.5, ha="right")
-    plt.text(time_in_kbjd[-1], sap_lightcurve[-1], "-SAP", alpha=0.5)
-    shift1 = 0.
-    dshift = 0.2 * (np.min(sap_lightcurve[I]) - np.max(sap_lightcurve[I]))
-    for ii, lc, tla in [(0, owl_lightcurve, "OWL"),
-                        (1, opw_lightcurve, "OPW"),
-                        (2, tsa_lightcurve, "TSA")]:
-        ss = shift1 + ii * dshift
-        plt.plot(time_in_kbjd[ I], ss + lc[I], "k-")
-        plt.text(time_in_kbjd[ 0], ss + lc[0], "%s-" % tla, ha="right")
-        plt.text(time_in_kbjd[-1], ss + lc[-1], "-%s" % tla)
-    plt.xlim(np.min(time_in_kbjd[I]) - 4., np.max(time_in_kbjd[I]) + 4.) # MAGIC
-    plt.xlabel("time (KBJD in days)")
-    plt.ylabel("flux (in Kepler SAP ADU)")
-    savefig("%s_photometry.png" % prefix)
-
-    # make diff photometry plot
-    plt.figure(figsize=(fsf * nx, 0.5 * fsf * nx))
-    plt.clf()
-    plt.title(title)
-    clip_mask = get_sigma_clip_mask(intensities, means, covars, kplr_mask)
-    I = (epoch_mask > 0) * (clip_mask > 0)
-    plt.plot(time_in_kbjd[I], sap_lightcurve[I], "k-", alpha=0.5)
-    plt.text(time_in_kbjd[0], sap_lightcurve[0], "SAP-", alpha=0.5, ha="right")
-    plt.text(time_in_kbjd[-1], sap_lightcurve[-1], "-SAP", alpha=0.5)
-    shift1 = 0.
-    dshift = 0.2 * (np.min(sap_lightcurve[I]) - np.max(sap_lightcurve[I]))
-    for ii, lc, tla in [(0, dowl_lightcurve, "DOWL"),
-                        (1, dopw_lightcurve, "DOPW"),
-                        (2, dtsa_lightcurve, "DTSA")]:
-        ss = shift1 + ii * dshift
-        plt.plot(time_in_kbjd[ I], ss + lc[I], "k-")
-        plt.text(time_in_kbjd[ 0], ss + lc[0], "%s-" % tla, ha="right")
-        plt.text(time_in_kbjd[-1], ss + lc[-1], "-%s" % tla)
-    plt.xlim(np.min(time_in_kbjd[I]) - 4., np.max(time_in_kbjd[I]) + 4.) # MAGIC
-    plt.xlabel("time (KBJD in days)")
-    plt.ylabel("flux (in Kepler SAP ADU)")
-    savefig("%s_diff_photometry.png" % prefix)
+    for suffix, list in [("photometry",
+                          [(0, owl_lightcurve, "OWL"),
+                           (1, opw_lightcurve, "OPW"),
+                           (2, tsa_lightcurve, "TSA")]),
+                         ("diff_photometry",
+                          [(0, dowl_lightcurve, "DOWL"),
+                           (1, dopw_lightcurve, "DOPW"),
+                           (2, dtsa_lightcurve, "DTSA")]),
+                         ("comp_photometry",
+                          [(0, cowl_lightcurve, "COWL"),
+                           (1, copw_lightcurve, "COPW")])]:
+        plt.figure(figsize=(fsf * nx, 0.5 * fsf * nx))
+        plt.clf()
+        plt.title(title)
+        clip_mask = get_sigma_clip_mask(intensities, means, covars, kplr_mask)
+        I = (epoch_mask > 0) * (clip_mask > 0)
+        plt.plot(time_in_kbjd[I], sap_lightcurve[I], "k-", alpha=0.5)
+        plt.text(time_in_kbjd[0], sap_lightcurve[0], "SAP-", alpha=0.5, ha="right")
+        plt.text(time_in_kbjd[-1], sap_lightcurve[-1], "-SAP", alpha=0.5)
+        shift1 = 0.
+        dshift = 0.2 * (np.min(sap_lightcurve[I]) - np.max(sap_lightcurve[I]))
+        for ii, lc, tla in list:
+            ss = shift1 + ii * dshift
+            plt.plot(time_in_kbjd[ I], ss + lc[I], "k-")
+            plt.text(time_in_kbjd[ 0], ss + lc[0], "%s-" % tla, ha="right")
+            plt.text(time_in_kbjd[-1], ss + lc[-1], "-%s" % tla)
+        plt.xlim(np.min(time_in_kbjd[I]) - 4., np.max(time_in_kbjd[I]) + 4.) # MAGIC
+        plt.xlabel("time (KBJD in days)")
+        plt.ylabel("flux (in Kepler SAP ADU)")
+        savefig("%s_%s.png" % (prefix, suffix))
 
     # phone home
     return time_in_kbjd, sap_lightcurve, owl_lightcurve
