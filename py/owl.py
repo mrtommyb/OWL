@@ -29,7 +29,7 @@ if False:
 else:
     pmap = map
 
-def get_target_pixel_file(kicid, quarter):
+def get_kepler_target_pixel_file(kicid, quarter):
     """
     ## bugs:
     * needs comment header.
@@ -240,7 +240,31 @@ def savefig(fn):
     print "writing file " + fn
     plt.savefig(fn)
 
-def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
+def get_kepler_data(kicid, quarter, makeplots=True):
+    prefix = "kic_%08d_%02d" % (kicid, quarter)
+    title = "KIC %08d Q%02d" % (kicid, quarter)
+    tpf = get_kepler_target_pixel_file(kicid, quarter)
+    with tpf.open() as hdu:
+        table = hdu[1].data
+        kplr_mask = hdu[2].data
+    time_in_kbjd = table["TIME"]
+    # raw_cnts = table["RAW_CNTS"] # not trying this as yet
+    intensities = table["FLUX"]
+    if makeplots:
+        fig = tpf.plot()
+        fig.suptitle(title)
+        savefig("%s_pixels.png" % prefix)
+    return time_in_kbjd, intensities, kplr_mask, prefix, title
+
+def get_k2_data():
+    """
+    ## bugs:
+    * Everything hard-coded!
+    """
+    
+    return time_in_kbjd, intensities, kplr_mask, prefix, title
+
+def photometer_and_plot(kicid, quarter, fake=False, makeplots=True, k2=False):
     """
     ## inputs:
     - `kicid` - KIC number
@@ -262,23 +286,12 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True):
         prefix = "fake"
         title = "fake data"
         intensities, kplr_mask = get_fake_data(4700)
-        nt, ny, nx = intensities.shape
         time_in_kbjd = np.arange(len(intensities)) / 24. / 2.
+    elif k2:
+        time_in_kbjd, intensities, kplr_mask, prefix, title = get_k2_data()
     else:
-        prefix = "kic_%08d_%02d" % (kicid, quarter)
-        title = "KIC %08d Q%02d" % (kicid, quarter)
-        tpf = get_target_pixel_file(kicid, quarter)
-        with tpf.open() as hdu:
-            table = hdu[1].data
-            kplr_mask = hdu[2].data
-        time_in_kbjd = table["TIME"]
-        # raw_cnts = table["RAW_CNTS"] # not trying this as yet
-        intensities = table["FLUX"]
-        nt, ny, nx = intensities.shape
-        if makeplots:
-            fig = tpf.plot()
-            fig.suptitle(title)
-            savefig("%s_pixels.png" % prefix)
+        time_in_kbjd, intensities, kplr_mask, prefix, title = get_kplr_data(kicid, quarter, makeplots=makeplots)
+    nt, ny, nx = intensities.shape
 
     # get SAP weights and photometry
     sap_weights = np.zeros(kplr_mask.shape)
