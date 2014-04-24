@@ -260,11 +260,35 @@ def get_k2_data():
     """
     ## bugs:
     * Everything hard-coded!
+    * Hacks to remove bad data
     """
-    
+    prefix = "K2_target"
+    title = "@MrTommyB's K2 target"
+    tpf = kplr.TargetPixelFile.local("../data/kplr060017806-2014044044430_lpd-targ.fits") # MAGIC
+    with tpf.open() as hdu:
+        table = hdu[1].data
+        kplr_mask = hdu[2].data
+    II = np.where(kplr_mask == 3)
+    y1 = np.min(II[0]) - 1
+    y2 = np.max(II[0]) + 2
+    x1 = np.min(II[1]) - 1
+    x2 = np.max(II[1]) + 2
+    time_in_kbjd = table["TIME"]
+    intensities = table["FLUX"]
+    quality = table["QUALITY"]
+    II = np.where((time_in_kbjd > 1862.3) * (quality == 0))[0] # MAGIC
+    time_in_kbjd = time_in_kbjd[II]
+    intensities = intensities[II]
+    bgs = np.array([np.median(int) for int in intensities])
+    intensities -= bgs[:, None, None]
+    intensities = intensities[:,y1:y2,x1:x2] # trim down
+    kplr_mask = kplr_mask[y1:y2,x1:x2]
+    print intensities.shape
+    print kplr_mask.shape
+    print np.where(kplr_mask == 3)
     return time_in_kbjd, intensities, kplr_mask, prefix, title
 
-def photometer_and_plot(kicid, quarter, fake=False, makeplots=True, k2=False):
+def photometer_and_plot(kicid, quarter, fake=False, makeplots=True, k2=True):
     """
     ## inputs:
     - `kicid` - KIC number
@@ -385,7 +409,7 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True, k2=False):
         eigvec = eig[1]
         II = (np.argsort(eigval))[::-1]
         eigval = eigval[II]
-        eigvec = eigvec[II]
+        eigvec = eigvec[:,II]
         eigvec0 = eigvec[0]
         plt.figure(figsize=(fsf * nx, fsf * ny)) # MAGIC
         plt.clf()
@@ -515,8 +539,12 @@ if __name__ == "__main__":
         kicid = int(sys.argv[1])
     if len(sys.argv) > 2:
         quarter = int(sys.argv[2])
-    t, s, o = photometer_and_plot(kicid, quarter)
-    if len(sys.argv) == 1:
+    if len(sys.argv) > 1:
+        t, s, o = photometer_and_plot(kicid, quarter)
+    else:
+        t, s, o = photometer_and_plot(kicid, quarter, k2=True)
+
+    if False: # 
         t, s, o = photometer_and_plot(kicid, quarter, fake=True)
         kicid = 8692861
         t, s, o = photometer_and_plot(kicid, quarter)
