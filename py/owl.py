@@ -313,6 +313,7 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True, k2=True):
         time_in_kbjd = np.arange(len(intensities)) / 24. / 2.
     elif k2:
         time_in_kbjd, intensities, kplr_mask, prefix, title = get_k2_data()
+        tb_output = np.loadtxt("../data/wasp28_lc_tom.txt").T
     else:
         time_in_kbjd, intensities, kplr_mask, prefix, title = get_kplr_data(kicid, quarter, makeplots=makeplots)
     nt, ny, nx = intensities.shape
@@ -512,9 +513,17 @@ def photometer_and_plot(kicid, quarter, fake=False, makeplots=True, k2=True):
         plt.title(title)
         clip_mask = get_sigma_clip_mask(intensities, means, covars, kplr_mask)
         I = (epoch_mask > 0) * (clip_mask > 0)
-        plt.plot(time_in_kbjd[I], sap_lightcurve[I], "k-", alpha=0.5)
-        plt.text(time_in_kbjd[0], sap_lightcurve[0], "SAP-", alpha=0.5, ha="right")
-        plt.text(time_in_kbjd[-1], sap_lightcurve[-1], "-SAP", alpha=0.5)
+        try:
+            tb_time = tb_output[0]
+            tb_lightcurve = (tb_output[1] + 1.) * np.median(sap_lightcurve)
+        except NameError:
+            plt.plot(time_in_kbjd[I], sap_lightcurve[I], "k-", alpha=0.5)
+            plt.text(time_in_kbjd[0], sap_lightcurve[0], "SAP-", alpha=0.5, ha="right")
+            plt.text(time_in_kbjd[-1], sap_lightcurve[-1], "-SAP", alpha=0.5)
+        else:
+            plt.plot(tb_time,    tb_lightcurve, "k-", alpha=0.5)
+            plt.text(tb_time[0], tb_lightcurve[0], "TommyB-", alpha=0.5, ha="right")
+            plt.text(tb_time[-1],tb_lightcurve[-1], "-TommyB", alpha=0.5)
         shift1 = 0.
         dshift = 0.2 * (np.min(sap_lightcurve[I]) - np.max(sap_lightcurve[I]))
         for ii, lc, tla in list:
