@@ -231,7 +231,11 @@ def get_opw_weights(means, covars, owl_weights=None):
     if owl_weights is None:
         owl_weights = get_owl_weights(means, covars)
     start_ln_weights = np.log(np.abs(owl_weights))
-    ln_weights = op.fmin(get_objective_function, start_ln_weights, args=(means, covars, True), maxfun=np.Inf, maxiter=np.Inf)
+    ln_weights = op.fmin_l_bfgs_b(get_objective_function,
+        start_ln_weights, args=(means, covars, True),
+        approx_grad=True)#,
+        #xtol=0.00001, ftol=0.00001)#,
+        #maxfun=np.Inf, maxiter=np.Inf)
     return np.exp(ln_weights)
 
 def get_tsa_intensities_and_mask(intensities, kplr_mask):
